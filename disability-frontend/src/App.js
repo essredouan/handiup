@@ -34,6 +34,8 @@ function App() {
   return (
     <Router>
       <Routes>
+      
+
         <Route path="/about" element={<About />} />       
         <Route path="/contact" element={<Contact />} /> 
         <Route path="/reset-password/:token" element={<ResetPassword />} />

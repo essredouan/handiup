@@ -7,7 +7,7 @@ import {
   deletePostCtrl,
   getPostsCountCtrl,
   toggleLikeCtrl,
-  getUserPostsCtrl, // زدت هاد الدالة
+  getUserPostsCtrl,
 } from "../controllers/postsController.js";
 import photoUpload from "../middleware/photoUpload.js";
 import {
@@ -28,11 +28,11 @@ router.put("/like/:id", validateObjectid, verifyToken, toggleLikeCtrl);
 // ✅ جميع البوستات
 router.get("/", getAllPostsCtrl);
 
+// ✅ جلب بوستات المستخدم الحالي
+router.get("/myposts", verifyToken, getUserPostsCtrl);
+
 // ✅ بوست معين حسب ID
 router.get("/:id", validateObjectid, getPostByIdCtrl);
-
-// ✅ جلب بوستات المستخدم الحالي
-router.get("/user", verifyToken, getUserPostsCtrl);
 
 // ✅ إنشاء بوست جديد
 router.post(
@@ -42,7 +42,7 @@ router.post(
   createPostCtrl
 );
 
-// ✅ تعديل بوست
+// ✅ تعديل بوست (صاحب البوست أو admin فقط)
 router.put(
   "/:id",
   validateObjectid,
@@ -51,7 +51,12 @@ router.put(
   updatePostCtrl
 );
 
-// ✅ حذف بوست
-router.delete("/:id", validateObjectid, verifyToken, deletePostCtrl);
+// ✅ حذف بوست (صاحب البوست أو admin فقط)
+router.delete(
+  "/:id",
+  validateObjectid,
+  verifyToken,
+  deletePostCtrl
+);
 
 export default router;

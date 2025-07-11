@@ -64,7 +64,6 @@ function Register() {
       [name]: value
     }));
     
-    // Validate on change but only after first blur
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -111,9 +110,8 @@ function Register() {
       }, {
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest"
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 10000
       });
 
       setSuccess(res.data.message);
@@ -129,15 +127,15 @@ function Register() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
+    <div className="register-container">
+      <div className="register-card">
+        <div className="register-header">
           <h1>Create Account</h1>
           <p>Join our community today</p>
         </div>
 
         {serverError && (
-          <div className="auth-alert error">
+          <div className="alert error">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 8V12M12 16H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -146,7 +144,7 @@ function Register() {
         )}
 
         {success && (
-          <div className="auth-alert success">
+          <div className="alert success">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -154,8 +152,8 @@ function Register() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="register-form">
+          <div className="input-group">
             <label htmlFor="username">Username</label>
             <input
               id="username"
@@ -165,13 +163,13 @@ function Register() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Enter your username"
-              className={errors.username ? "input-error" : ""}
+              className={errors.username ? "error" : ""}
               autoComplete="username"
             />
-            {errors.username && <div className="error-message">{errors.username}</div>}
+            {errors.username && <span className="error-text">{errors.username}</span>}
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label htmlFor="email">Email Address</label>
             <input
               id="email"
@@ -181,13 +179,13 @@ function Register() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="your@email.com"
-              className={errors.email ? "input-error" : ""}
+              className={errors.email ? "error" : ""}
               autoComplete="email"
             />
-            {errors.email && <div className="error-message">{errors.email}</div>}
+            {errors.email && <span className="error-text">{errors.email}</span>}
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -197,13 +195,13 @@ function Register() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="At least 8 characters"
-              className={errors.password ? "input-error" : ""}
+              className={errors.password ? "error" : ""}
               autoComplete="new-password"
             />
-            {errors.password && <div className="error-message">{errors.password}</div>}
+            {errors.password && <span className="error-text">{errors.password}</span>}
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               id="confirmPassword"
@@ -213,13 +211,13 @@ function Register() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Confirm your password"
-              className={errors.confirmPassword ? "input-error" : ""}
+              className={errors.confirmPassword ? "error" : ""}
               autoComplete="new-password"
             />
-            {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
+            {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
           </div>
 
-          <div className="form-group">
+          <div className="input-group">
             <label htmlFor="role">Account Type</label>
             <select
               id="role"
@@ -227,7 +225,7 @@ function Register() {
               value={formData.role}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={errors.role ? "input-error" : ""}
+              className={errors.role ? "error" : ""}
               required
             >
               <option value="" disabled>Select your role</option>
@@ -235,199 +233,186 @@ function Register() {
               <option value="volunteer">Volunteer</option>
               <option value="organization">Organization</option>
             </select>
-            {errors.role && <div className="error-message">{errors.role}</div>}
+            {errors.role && <span className="error-text">{errors.role}</span>}
           </div>
 
-          <button type="submit" className="auth-button" disabled={loading}>
+          <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? (
-              <div className="loading-spinner"></div>
+              <div className="spinner"></div>
             ) : (
               "Create Account"
             )}
           </button>
         </form>
 
-        <div className="auth-footer">
-          <p>Already have an account? <button className="text-button" onClick={() => navigate("/login")}>Sign in</button></p>
+        <div className="register-footer">
+          <p>Already have an account? <button className="link-btn" onClick={() => navigate("/login")}>Sign in</button></p>
         </div>
       </div>
 
       <style jsx>{`
         /* Base Styles */
-        :root {
-          --primary: #4361ee;
-          --primary-hover: #3a56d4;
-          --error: #ef233c;
-          --error-light: #fff5f5;
-          --success: #06d6a0;
-          --success-light: #f0fdf9;
-          --text: #2b2d42;
-          --text-light: #8d99ae;
-          --border: #e9ecef;
-          --border-error: #ffb8b8;
-          --white: #ffffff;
-          --radius: 8px;
-          --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
         }
 
-        /* Layout */
-        .auth-container {
+        .register-container {
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 16px;
           background-color: #f8f9fa;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
 
-        .auth-card {
+        .register-card {
           width: 100%;
-          max-width: 480px;
-          background: var(--white);
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
+          max-width: 420px;
+          background: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           padding: 32px;
+          margin: 16px;
         }
 
         /* Header */
-        .auth-header {
+        .register-header {
           text-align: center;
           margin-bottom: 24px;
         }
 
-        .auth-header h1 {
-          font-size: 24px;
+        .register-header h1 {
+          font-size: 1.5rem;
           font-weight: 600;
-          color: var(--text);
-          margin: 0 0 8px;
+          color: #2d3748;
+          margin-bottom: 8px;
         }
 
-        .auth-header p {
-          color: var(--text-light);
-          margin: 0;
-          font-size: 14px;
+        .register-header p {
+          color: #718096;
+          font-size: 0.875rem;
         }
 
         /* Alerts */
-        .auth-alert {
+        .alert {
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 12px 16px;
           margin-bottom: 20px;
-          border-radius: var(--radius);
-          font-size: 14px;
+          border-radius: 8px;
+          font-size: 0.875rem;
         }
 
-        .auth-alert.error {
-          background-color: var(--error-light);
-          color: var(--error);
-          border: 1px solid var(--border-error);
+        .alert.error {
+          background-color: #fff5f5;
+          color: #e53e3e;
+          border: 1px solid #fed7d7;
         }
 
-        .auth-alert.success {
-          background-color: var(--success-light);
-          color: var(--success);
-          border: 1px solid #ccfbf1;
-        }
-
-        .auth-alert svg {
-          flex-shrink: 0;
+        .alert.success {
+          background-color: #f0fff4;
+          color: #38a169;
+          border: 1px solid #c6f6d5;
         }
 
         /* Form */
-        .auth-form {
+        .register-form {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 1.25rem;
         }
 
-        .form-group {
+        .input-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 0.5rem;
         }
 
-        .form-group label {
-          font-size: 14px;
+        .input-group label {
+          font-size: 0.875rem;
           font-weight: 500;
-          color: var(--text);
+          color: #4a5568;
         }
 
-        .form-group input,
-        .form-group select {
+        .input-group input,
+        .input-group select {
           width: 100%;
-          padding: 12px 16px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          font-size: 14px;
+          padding: 0.75rem 1rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          font-size: 0.875rem;
           transition: all 0.2s ease;
+          -webkit-appearance: none;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
+        .input-group input:focus,
+        .input-group select:focus {
           outline: none;
-          border-color: var(--primary);
-          box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+          border-color: #4299e1;
+          box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
         }
 
-        .input-error {
-          border-color: var(--error) !important;
+        .input-group input.error,
+        .input-group select.error {
+          border-color: #e53e3e;
         }
 
-        .input-error:focus {
-          box-shadow: 0 0 0 2px rgba(239, 35, 60, 0.2) !important;
+        .input-group input.error:focus,
+        .input-group select.error:focus {
+          box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.2);
         }
 
-        .error-message {
-          color: var(--error);
-          font-size: 12px;
-          margin-top: 4px;
+        .error-text {
+          color: #e53e3e;
+          font-size: 0.75rem;
         }
 
-        .form-group select {
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238D99AE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        .input-group select {
+          background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
-          background-position: right 16px center;
+          background-position: right 1rem center;
           cursor: pointer;
         }
 
         /* Button */
-        .auth-button {
+        .submit-btn {
           width: 100%;
-          padding: 14px;
-          background-color: var(--primary);
-          color: var(--white);
+          padding: 0.75rem;
+          background-color: #4299e1;
+          color: white;
           border: none;
-          border-radius: var(--radius);
-          font-size: 16px;
+          border-radius: 6px;
+          font-size: 1rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
-          margin-top: 8px;
+          margin-top: 0.5rem;
           display: flex;
           align-items: center;
           justify-content: center;
+          height: 44px;
         }
 
-        .auth-button:hover:not(:disabled) {
-          background-color: var(--primary-hover);
+        .submit-btn:hover:not(:disabled) {
+          background-color: #3182ce;
         }
 
-        .auth-button:disabled {
+        .submit-btn:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }
 
-        /* Loading Spinner */
-        .loading-spinner {
+        /* Spinner */
+        .spinner {
           width: 20px;
           height: 20px;
           border: 2px solid rgba(255, 255, 255, 0.3);
           border-radius: 50%;
-          border-top-color: var(--white);
+          border-top-color: white;
           animation: spin 1s linear infinite;
         }
 
@@ -436,31 +421,58 @@ function Register() {
         }
 
         /* Footer */
-        .auth-footer {
-          margin-top: 24px;
+        .register-footer {
+          margin-top: 1.5rem;
           text-align: center;
-          font-size: 14px;
-          color: var(--text-light);
+          font-size: 0.875rem;
+          color: #718096;
         }
 
-        .text-button {
+        .link-btn {
           background: none;
           border: none;
-          color: var(--primary);
+          color: #4299e1;
           font-weight: 500;
           cursor: pointer;
           padding: 0;
-          transition: all 0.2s ease;
         }
 
-        .text-button:hover {
+        .link-btn:hover {
           text-decoration: underline;
         }
 
-        /* Responsive */
+        /* Mobile Optimizations */
         @media (max-width: 480px) {
-          .auth-card {
+          .register-card {
             padding: 24px;
+            margin: 8px;
+          }
+
+          .register-header h1 {
+            font-size: 1.25rem;
+          }
+
+          .input-group input,
+          .input-group select {
+            padding: 0.625rem 0.875rem;
+          }
+
+          /* Prevent zoom on input focus on mobile */
+          @media screen and (max-width: 480px) {
+            input, select {
+              font-size: 16px;
+            }
+          }
+        }
+
+        @media (max-width: 360px) {
+          .register-card {
+            padding: 20px 16px;
+          }
+
+          .submit-btn {
+            height: 40px;
+            font-size: 0.875rem;
           }
         }
       `}</style>

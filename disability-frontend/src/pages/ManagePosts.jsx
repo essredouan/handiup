@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-function CreateAndManagePosts() {
+function CreatePost() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
-  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [editPostId, setEditPostId] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editCategory, setEditCategory] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const navigate = useNavigate();
 
   const userRole = localStorage.getItem("role");
 
@@ -28,35 +26,32 @@ function CreateAndManagePosts() {
         setCategories(res.data);
       } catch (error) {
         console.error("Failed to fetch categories", error);
-        setError("Failed to load categories. Please try again later.");
+        showError("Failed to load categories. Please try again later.");
       }
     };
     fetchCategories();
   }, []);
 
-  const fetchPosts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/posts/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPosts(res.data);
-    } catch (error) {
-      console.error("Failed to fetch posts", error);
-      setError("Failed to load posts. Please try again later.");
-    }
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(null), 5000);
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  const showSuccess = (message) => {
+    setSuccess(message);
+    setShowSuccessModal(true);
+    setTimeout(() => {
+      setShowSuccessModal(false);
+      setSuccess(null);
+    }, 3000);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     
     if (!title || !description || !imageFile || !category) {
-      setError("Please fill all fields, select image and category.");
+      showError("Please fill all fields, select image and category.");
       return;
     }
 
@@ -69,112 +64,43 @@ function CreateAndManagePosts() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.post("http://localhost:5000/api/posts", formData, {
+      await axios.post("http://localhost:5000/api/posts", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
 
-      setPosts((prevPosts) => [res.data, ...prevPosts]);
-      setSuccess("Post created successfully!");
-      setTitle("");
-      setDescription("");
-      setImageFile(null);
-      setCategory("");
-      
-      setTimeout(() => setSuccess(null), 5000);
+      showSuccess("Post created successfully!");
+      resetForm();
     } catch (error) {
       console.error(error);
-      setError(error.response?.data?.message || "Failed to create post");
+      showError(error.response?.data?.message || "Failed to create post");
     } finally {
       setLoading(false);
     }
   };
 
-  const startEdit = (post) => {
-    setEditPostId(post._id);
-    setEditTitle(post.title);
-    setEditDescription(post.description);
-    setEditCategory(post.category || "");
-    setTimeout(() => document.getElementById(`edit-title-${post._id}`)?.focus(), 100);
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setImageFile(null);
+    setCategory("");
   };
 
-  const cancelEdit = () => {
-    setEditPostId(null);
-    setEditTitle("");
-    setEditDescription("");
-    setEditCategory("");
-  };
-
-  const saveEdit = async () => {
-    setError(null);
-    
-    if (!editTitle || !editDescription || !editCategory) {
-      setError("Please fill all fields to update");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `http://localhost:5000/api/posts/${editPostId}`,
-        { title: editTitle, description: editDescription, category: editCategory },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      setSuccess("Post updated successfully");
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => (post._id === editPostId ? res.data : post))
-      );
-      
-      setTimeout(() => setSuccess(null), 5000);
-      cancelEdit();
-    } catch (error) {
-      console.error(error);
-      setError(error.response?.data?.message || "Failed to update post");
-    }
-  };
-
-  const deletePost = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/posts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuccess("Post deleted successfully");
-      setPosts((prevPosts) => prevPosts.filter((post) => post._id !== id));
-      
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (error) {
-      console.error(error);
-      setError(error.response?.data?.message || "Failed to delete post");
-    }
+  const handleViewPosts = () => {
+    navigate("/my-posts");
   };
 
   return (
-    <div className="post-management-container">
-      <h1 className="sr-only">Post Management</h1>
+    <div className="create-post-container">
+      <h1 className="sr-only">Create Post</h1>
       
       <section aria-labelledby="create-post-heading" className="post-section">
         <div className="section-header">
           <h2 id="create-post-heading">Create New Post</h2>
           <div className="header-decoration"></div>
         </div>
-        
-        {error && (
-          <div className="alert alert-error">
-            <div className="alert-icon">!</div>
-            <div>{error}</div>
-          </div>
-        )}
-        
-        {success && (
-          <div className="alert alert-success">
-            <div className="alert-icon">✓</div>
-            <div>{success}</div>
-          </div>
-        )}
         
         <form onSubmit={handleSubmit} className="post-form">
           <div className="form-group floating">
@@ -240,145 +166,70 @@ function CreateAndManagePosts() {
             </label>
           </div>
           
-          <button type="submit" className="btn create-btn" disabled={loading}>
-            {loading ? (
-              <span className="spinner"></span>
-            ) : (
-              <>
-                <span className="btn-icon">+</span>
-                <span>Create Post</span>
-              </>
-            )}
-          </button>
+          <div className="form-actions">
+            <button type="submit" className="btn create-btn" disabled={loading}>
+              {loading ? (
+                <span className="spinner"></span>
+              ) : (
+                <>
+                  <span className="btn-icon">+</span>
+                  <span>Create Post</span>
+                </>
+              )}
+            </button>
+            
+            <button 
+              type="button" 
+              className="btn view-posts-btn"
+              onClick={handleViewPosts}
+            >
+              View My Posts
+            </button>
+          </div>
         </form>
       </section>
 
-      <div className="divider">
-        <div className="divider-line"></div>
-        <div className="divider-circle"></div>
-        <div className="divider-line"></div>
-      </div>
-
-      <section aria-labelledby="my-posts-heading" className="post-section">
-        <div className="section-header">
-          <h2 id="my-posts-heading">My Posts</h2>
-          <div className="header-decoration"></div>
+      {/* Error Message */}
+      {error && (
+        <div className="alert-popup error">
+          <div className="alert-content">
+            <div className="alert-icon">!</div>
+            <div className="alert-message">{error}</div>
+            <button 
+              className="alert-close"
+              onClick={() => setError(null)}
+              aria-label="Close error message"
+            >
+              &times;
+            </button>
+          </div>
         </div>
-        
-        {posts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">✏️</div>
-            <h3>No Posts Yet</h3>
-            <p>Your creative journey starts here</p>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="success-modal">
+          <div className="modal-content">
+            <div className="modal-icon">✓</div>
+            <h3 className="modal-title">Success!</h3>
+            <p className="modal-message">{success}</p>
+            <div className="modal-actions">
+              <button 
+                className="btn modal-btn"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                Continue
+              </button>
+              <button 
+                className="btn view-posts-btn"
+                onClick={handleViewPosts}
+              >
+                View Posts
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="posts-container">
-            {posts
-              .filter(post => ["volunteer", "disabled", "organization", "admin"].includes(post.category))
-              .map((post) => (
-                <article key={post._id} className={`post-card ${editPostId === post._id ? "editing" : ""}`}>
-                  {editPostId === post._id ? (
-                    <div className="edit-form">
-                      <div className="form-group floating">
-                        <input
-                          id={`edit-title-${post._id}`}
-                          type="text"
-                          placeholder=" "
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          required
-                          aria-required="true"
-                        />
-                        <label htmlFor={`edit-title-${post._id}`}>Title</label>
-                        <div className="underline"></div>
-                      </div>
-                      
-                      <div className="form-group floating">
-                        <textarea
-                          id={`edit-description-${post._id}`}
-                          placeholder=" "
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          rows={4}
-                          required
-                          aria-required="true"
-                        />
-                        <label htmlFor={`edit-description-${post._id}`}>Description</label>
-                        <div className="underline"></div>
-                      </div>
-                      
-                      <div className="form-group floating">
-                        <select
-                          id={`edit-category-${post._id}`}
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          required
-                          aria-required="true"
-                        >
-                          <option value=""></option>
-                          <option value="volunteer">Volunteer</option>
-                          <option value="disabled">Disabled</option>
-                          <option value="organization">Organization</option>
-                          {userRole === "admin" && <option value="admin">Admin</option>}
-                        </select>
-                        <label htmlFor={`edit-category-${post._id}`}>Category</label>
-                        <div className="underline"></div>
-                      </div>
-                      
-                      <div className="edit-actions">
-                        <button 
-                          type="button" 
-                          onClick={saveEdit} 
-                          className="btn save-btn"
-                        >
-                          Save
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={cancelEdit} 
-                          className="btn cancel-btn"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="post-header">
-                        <span className={`category-badge ${post.category}`}>
-                          {post.category}
-                        </span>
-                        <time className="post-date">
-                          {new Date(post.createdAt).toLocaleDateString()}
-                        </time>
-                      </div>
-                      <div className="post-content">
-                        <h3>{post.title}</h3>
-                        <p>{post.description}</p>
-                      </div>
-                      <div className="post-actions">
-                        <button 
-                          onClick={() => startEdit(post)} 
-                          className="btn edit-btn"
-                          aria-label={`Edit post titled ${post.title}`}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deletePost(post._id)}
-                          className="btn delete-btn"
-                          aria-label={`Delete post titled ${post.title}`}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </article>
-              ))}
-          </div>
-        )}
-      </section>
+        </div>
+      )}
 
       <style jsx>{`
         /* Radical Design System */
@@ -394,6 +245,7 @@ function CreateAndManagePosts() {
           --warning: #FF9100;
           --text: #333333;
           --text-light: #777777;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         * {
@@ -409,10 +261,11 @@ function CreateAndManagePosts() {
           line-height: 1.6;
         }
 
-        .post-management-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 2rem 1rem;
+        .create-post-container {
+          max-width: 600px;
+          margin: 2rem auto;
+          padding: 0 1rem;
+          position: relative;
         }
 
         .sr-only {
@@ -435,6 +288,7 @@ function CreateAndManagePosts() {
         .section-header {
           position: relative;
           margin-bottom: 2rem;
+          text-align: center;
         }
 
         h2 {
@@ -455,6 +309,7 @@ function CreateAndManagePosts() {
           width: 100px;
           background: linear-gradient(90deg, var(--primary), var(--secondary));
           border-radius: 4px;
+          margin: 0 auto;
         }
 
         /* Form Styles */
@@ -462,9 +317,7 @@ function CreateAndManagePosts() {
           background: white;
           padding: 2rem;
           border-radius: 16px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-          max-width: 600px;
-          margin: 0 auto;
+          box-shadow: var(--shadow);
         }
 
         .form-group {
@@ -571,6 +424,14 @@ function CreateAndManagePosts() {
           display: none;
         }
 
+        /* Form Actions */
+        .form-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-top: 2rem;
+        }
+
         /* Buttons */
         .btn {
           padding: 0.75rem 1.5rem;
@@ -603,6 +464,17 @@ function CreateAndManagePosts() {
           box-shadow: 0 6px 20px rgba(255, 77, 77, 0.4);
         }
 
+        .view-posts-btn {
+          background: white;
+          color: var(--primary);
+          border: 2px solid var(--primary);
+          width: 100%;
+        }
+
+        .view-posts-btn:hover {
+          background: rgba(255, 77, 77, 0.1);
+        }
+
         .btn-icon {
           margin-right: 0.5rem;
           font-weight: bold;
@@ -621,180 +493,28 @@ function CreateAndManagePosts() {
           to { transform: rotate(360deg); }
         }
 
-        .save-btn {
-          background-color: var(--success);
-          color: white;
+        /* Alert Popup */
+        .alert-popup {
+          position: fixed;
+          bottom: 2rem;
+          right: 2rem;
+          z-index: 1000;
+          animation: slideIn 0.3s ease-out;
         }
 
-        .cancel-btn {
-          background-color: var(--gray);
-          color: var(--text);
-        }
-
-        .edit-btn {
-          background-color: var(--warning);
-          color: white;
-        }
-
-        .delete-btn {
-          background-color: var(--error);
-          color: white;
-        }
-
-        /* Divider */
-        .divider {
-          display: flex;
-          align-items: center;
-          margin: 3rem 0;
-        }
-
-        .divider-line {
-          flex: 1;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, var(--gray));
-        }
-
-        .divider-circle {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: var(--primary);
-          margin: 0 1rem;
-        }
-
-        /* Posts Container */
-        .posts-container {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .post-card {
-          background: white;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .post-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .post-card.editing {
-          box-shadow: 0 0 0 3px var(--primary);
-        }
-
-        .post-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem;
-          background: var(--light);
-        }
-
-        .category-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: white;
-        }
-
-        .category-badge.volunteer {
-          background-color: var(--primary);
-        }
-
-        .category-badge.disabled {
-          background-color: var(--secondary);
-        }
-
-        .category-badge.organization {
-          background-color: var(--accent);
-          color: var(--dark);
-        }
-
-        .category-badge.admin {
-          background-color: var(--dark);
-        }
-
-        .post-date {
-          font-size: 0.75rem;
-          color: var(--text-light);
-        }
-
-        .post-content {
-          padding: 1.5rem;
-          flex-grow: 1;
-        }
-
-        .post-content h3 {
-          font-size: 1.25rem;
-          margin-bottom: 0.75rem;
-          color: var(--dark);
-        }
-
-        .post-content p {
-          color: var(--text-light);
-          font-size: 0.9rem;
-          line-height: 1.6;
-        }
-
-        .post-actions {
-          display: flex;
-          border-top: 1px solid var(--gray);
-          padding: 0.75rem;
-        }
-
-        .post-actions .btn {
-          flex: 1;
-          margin: 0 0.25rem;
-          padding: 0.5rem;
-          font-size: 0.85rem;
-        }
-
-        .edit-actions {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1rem;
-        }
-
-        /* Empty State */
-        .empty-state {
-          text-align: center;
-          padding: 3rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .empty-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-          opacity: 0.5;
-        }
-
-        .empty-state h3 {
-          font-size: 1.5rem;
-          margin-bottom: 0.5rem;
-          color: var(--dark);
-        }
-
-        .empty-state p {
-          color: var(--text-light);
-        }
-
-        /* Alerts */
-        .alert {
-          padding: 1rem;
+        .alert-popup.error {
+          background-color: white;
+          border-left: 5px solid var(--error);
+          box-shadow: var(--shadow);
           border-radius: 8px;
-          margin-bottom: 1.5rem;
+          overflow: hidden;
+        }
+
+        .alert-content {
           display: flex;
           align-items: center;
+          padding: 1rem;
+          max-width: 350px;
         }
 
         .alert-icon {
@@ -806,34 +526,109 @@ function CreateAndManagePosts() {
           display: flex;
           align-items: center;
           justify-content: center;
+          color: white;
+          background: var(--error);
+          flex-shrink: 0;
         }
 
-        .alert-error {
-          background-color: rgba(255, 23, 68, 0.1);
-          color: var(--error);
+        .alert-message {
+          flex-grow: 1;
+          margin-right: 0.5rem;
         }
 
-        .alert-error .alert-icon {
-          background-color: var(--error);
+        .alert-close {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: var(--text-light);
+          padding: 0 0.5rem;
+          line-height: 1;
+        }
+
+        .alert-close:hover {
+          color: var(--text);
+        }
+
+        /* Success Modal */
+        .success-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1001;
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          padding: 2rem;
+          text-align: center;
+          max-width: 400px;
+          width: 90%;
+          box-shadow: var(--shadow);
+          animation: scaleUp 0.3s ease-out;
+        }
+
+        .modal-icon {
+          width: 60px;
+          height: 60px;
+          background: var(--success);
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2rem;
+          margin: 0 auto 1rem;
+        }
+
+        .modal-title {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          color: var(--dark);
+        }
+
+        .modal-message {
+          color: var(--text-light);
+          margin-bottom: 1.5rem;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .modal-btn {
+          background: var(--primary);
           color: white;
         }
 
-        .alert-success {
-          background-color: rgba(0, 200, 83, 0.1);
-          color: var(--success);
+        /* Animations */
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
 
-        .alert-success .alert-icon {
-          background-color: var(--success);
-          color: white;
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scaleUp {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-          .posts-container {
-            grid-template-columns: 1fr;
-          }
-
           .post-form {
             padding: 1.5rem;
           }
@@ -841,10 +636,25 @@ function CreateAndManagePosts() {
           h2 {
             font-size: 1.8rem;
           }
+
+          .alert-popup {
+            bottom: 1rem;
+            right: 1rem;
+            left: 1rem;
+            max-width: calc(100% - 2rem);
+          }
+
+          .modal-actions {
+            flex-direction: column;
+          }
+
+          .modal-actions .btn {
+            width: 100%;
+          }
         }
       `}</style>
     </div>
   );
 }
 
-export default CreateAndManagePosts;
+export default CreatePost;

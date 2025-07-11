@@ -138,63 +138,83 @@ const ContactPage = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <form onSubmit={handleSubmit} className="contact-form">
+          <form onSubmit={handleSubmit} className="contact-form" noValidate>
             <h2>Send a Message</h2>
             
             {status === 'success' && (
-              <div className="form-alert success">
+              <motion.div 
+                className="form-alert success"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <p>Your message has been sent successfully!</p>
-              </div>
+              </motion.div>
             )}
             
             {status === 'error' && (
-              <div className="form-alert error">
+              <motion.div 
+                className="form-alert error"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <p>Failed to send message. Please try again.</p>
-              </div>
+              </motion.div>
             )}
 
-            <div className="form-group">
-              <div className="input-icon">
-                <FiUser />
+            <div className={`form-group ${errors.from_name ? 'has-error' : ''}`}>
+              <label htmlFor="from_name">Your Name</label>
+              <div className="input-container">
+                <div className="input-icon">
+                  <FiUser />
+                </div>
+                <input
+                  type="text"
+                  id="from_name"
+                  name="from_name"
+                  placeholder="John Doe"
+                  value={formData.from_name}
+                  onChange={handleChange}
+                  className={errors.from_name ? 'error' : ''}
+                />
               </div>
-              <input
-                type="text"
-                name="from_name"
-                placeholder="Your Name"
-                value={formData.from_name}
-                onChange={handleChange}
-                className={errors.from_name ? 'error' : ''}
-              />
               {errors.from_name && <span className="error-message">{errors.from_name}</span>}
             </div>
 
-            <div className="form-group">
-              <div className="input-icon">
-                <FiMail />
+            <div className={`form-group ${errors.from_email ? 'has-error' : ''}`}>
+              <label htmlFor="from_email">Your Email</label>
+              <div className="input-container">
+                <div className="input-icon">
+                  <FiMail />
+                </div>
+                <input
+                  type="email"
+                  id="from_email"
+                  name="from_email"
+                  placeholder="john@example.com"
+                  value={formData.from_email}
+                  onChange={handleChange}
+                  className={errors.from_email ? 'error' : ''}
+                />
               </div>
-              <input
-                type="email"
-                name="from_email"
-                placeholder="Your Email"
-                value={formData.from_email}
-                onChange={handleChange}
-                className={errors.from_email ? 'error' : ''}
-              />
               {errors.from_email && <span className="error-message">{errors.from_email}</span>}
             </div>
 
-            <div className="form-group">
-              <div className="input-icon">
-                <FiMessageSquare />
+            <div className={`form-group ${errors.message ? 'has-error' : ''}`}>
+              <label htmlFor="message">Your Message</label>
+              <div className="input-container">
+                <div className="input-icon">
+                  <FiMessageSquare />
+                </div>
+                <textarea
+                  id="message"
+                  name="message"
+                  placeholder="How can we help you?"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows="5"
+                  className={errors.message ? 'error' : ''}
+                ></textarea>
               </div>
-              <textarea
-                name="message"
-                placeholder="Your Message"
-                value={formData.message}
-                onChange={handleChange}
-                rows="5"
-                className={errors.message ? 'error' : ''}
-              ></textarea>
               {errors.message && <span className="error-message">{errors.message}</span>}
             </div>
 
@@ -228,6 +248,14 @@ const ContactPage = () => {
       </div>
 
       {/* CSS Styles */}
+      <style jsx global>{`
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+      `}</style>
+      
       <style jsx>{`
         :root {
           --primary: #4361ee;
@@ -246,6 +274,7 @@ const ContactPage = () => {
           --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
           --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
           --transition: all 0.3s ease;
+          --border-radius: 12px;
         }
 
         /* Base Styles */
@@ -253,6 +282,7 @@ const ContactPage = () => {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           color: var(--dark);
           line-height: 1.6;
+          overflow-x: hidden;
         }
 
         /* Hero Section */
@@ -270,13 +300,14 @@ const ContactPage = () => {
         }
 
         .hero-content h1 {
-          font-size: 3rem;
+          font-size: clamp(2rem, 5vw, 3rem);
           margin-bottom: 1.5rem;
           font-weight: 700;
+          line-height: 1.2;
         }
 
         .hero-content p {
-          font-size: 1.25rem;
+          font-size: clamp(1rem, 2vw, 1.25rem);
           opacity: 0.9;
           max-width: 600px;
           margin: 0 auto;
@@ -308,12 +339,13 @@ const ContactPage = () => {
         /* Contact Info */
         .contact-info {
           background: var(--white);
-          border-radius: 16px;
+          border-radius: var(--border-radius);
           padding: 2.5rem;
           box-shadow: var(--shadow-lg);
           display: flex;
           flex-direction: column;
           gap: 2rem;
+          align-self: flex-start;
         }
 
         .info-card {
@@ -348,6 +380,7 @@ const ContactPage = () => {
 
         .info-text a:hover {
           color: var(--primary);
+          text-decoration: none;
         }
 
         .social-links h3 {
@@ -359,6 +392,7 @@ const ContactPage = () => {
         .social-icons {
           display: flex;
           gap: 1rem;
+          flex-wrap: wrap;
         }
 
         .social-icons a {
@@ -371,6 +405,7 @@ const ContactPage = () => {
           justify-content: center;
           color: var(--gray);
           transition: var(--transition);
+          text-decoration: none;
         }
 
         .social-icons a:hover {
@@ -382,7 +417,7 @@ const ContactPage = () => {
         /* Contact Form */
         .contact-form-wrapper {
           background: var(--white);
-          border-radius: 16px;
+          border-radius: var(--border-radius);
           padding: 2.5rem;
           box-shadow: var(--shadow-lg);
         }
@@ -403,11 +438,24 @@ const ContactPage = () => {
           position: relative;
         }
 
+        .form-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: var(--dark);
+        }
+
+        .input-container {
+          position: relative;
+        }
+
         .input-icon {
           position: absolute;
           left: 15px;
-          top: 15px;
+          top: 50%;
+          transform: translateY(-50%);
           color: var(--gray);
+          z-index: 1;
         }
 
         .contact-form input,
@@ -419,6 +467,7 @@ const ContactPage = () => {
           font-family: inherit;
           font-size: 1rem;
           transition: var(--transition);
+          background-color: var(--light);
         }
 
         .contact-form input:focus,
@@ -426,11 +475,16 @@ const ContactPage = () => {
           outline: none;
           border-color: var(--primary);
           box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+          background-color: var(--white);
         }
 
         .contact-form textarea {
           min-height: 150px;
           resize: vertical;
+        }
+
+        .has-error .input-icon {
+          color: var(--error);
         }
 
         .error {
@@ -463,6 +517,7 @@ const ContactPage = () => {
           gap: 0.5rem;
           transition: var(--transition);
           margin-top: 0.5rem;
+          width: 100%;
         }
 
         .submit-btn:hover:not(:disabled) {
@@ -492,6 +547,7 @@ const ContactPage = () => {
           padding: 1rem;
           border-radius: 8px;
           font-weight: 500;
+          margin-bottom: 1rem;
         }
 
         .form-alert.success {
@@ -520,6 +576,17 @@ const ContactPage = () => {
         }
 
         /* Responsive Styles */
+        @media (max-width: 1024px) {
+          .contact-main {
+            gap: 2rem;
+          }
+          
+          .contact-info,
+          .contact-form-wrapper {
+            padding: 2rem;
+          }
+        }
+
         @media (max-width: 768px) {
           .contact-hero {
             padding: 4rem 1.5rem 6rem;
@@ -537,6 +604,11 @@ const ContactPage = () => {
             margin-top: -2rem;
             grid-template-columns: 1fr;
             gap: 2rem;
+          }
+
+          .contact-form input,
+          .contact-form textarea {
+            padding: 12px 12px 12px 40px;
           }
         }
 
@@ -563,6 +635,36 @@ const ContactPage = () => {
             width: 40px;
             height: 40px;
             font-size: 1.25rem;
+          }
+
+          .contact-form h2 {
+            font-size: 1.5rem;
+          }
+
+          .form-group label {
+            font-size: 0.9rem;
+          }
+
+          .submit-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .contact-info,
+          .contact-form-wrapper {
+            padding: 1.25rem;
+          }
+          
+          .info-text h3,
+          .social-links h3 {
+            font-size: 1.1rem;
+          }
+          
+          .info-text a,
+          .info-text p {
+            font-size: 0.9rem;
           }
         }
       `}</style>

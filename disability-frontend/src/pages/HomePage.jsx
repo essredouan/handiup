@@ -544,7 +544,7 @@ const HomePage = () => {
         .site-footer {
           background-color: #2c3e50;
           color: white;
-          padding: 4rem 0 0;
+          padding: 3rem 0 0;
           margin-top: 4rem;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -686,13 +686,6 @@ const HomePage = () => {
           margin: 0;
         }
 
-        .footer-divider {
-          border: none;
-          height: 1px;
-          background: rgba(255, 255, 255, 0.1);
-          margin: 2rem 0;
-        }
-
         /* Responsive styles */
         @media (max-width: 768px) {
           .main-content:not(.full-screen-landing) {
@@ -762,8 +755,8 @@ const Footer = () => {
         <div className="footer-column">
           <div className="footer-logo">Handi<span>Up</span></div>
           <p className="footer-about">
-            HandiUp is dedicated to empowering individuals with disabilities through community support, 
-            accessible resources, and equal opportunities for all.
+            HandiUp is a community platform dedicated to empowering individuals with disabilities 
+            through connection, resources, and support. Join us in creating a more inclusive world.
           </p>
           <div className="social-links">
             <a href="#" className="social-link" aria-label="Facebook">
@@ -785,7 +778,7 @@ const Footer = () => {
         </div>
 
         <div className="footer-column">
-          <h3 className="footer-heading">Quick Links</h3>
+          <h3 className="footer-heading">Links</h3>
           <ul className="footer-links">
             <li>
               <a href="/about" className="footer-link">
@@ -793,54 +786,8 @@ const Footer = () => {
               </a>
             </li>
             <li>
-              <a href="/services" className="footer-link">
-                <FaChevronRight /> Our Services
-              </a>
-            </li>
-            <li>
-              <a href="/resources" className="footer-link">
-                <FaChevronRight /> Resources
-              </a>
-            </li>
-            <li>
-              <a href="/blog" className="footer-link">
-                <FaChevronRight /> Blog
-              </a>
-            </li>
-            <li>
-              <a href="/volunteer" className="footer-link">
-                <FaChevronRight /> Volunteer
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div className="footer-column">
-          <h3 className="footer-heading">Support</h3>
-          <ul className="footer-links">
-            <li>
-              <a href="/faq" className="footer-link">
-                <FaChevronRight /> FAQ
-              </a>
-            </li>
-            <li>
               <a href="/contact" className="footer-link">
-                <FaChevronRight /> Contact Us
-              </a>
-            </li>
-            <li>
-              <a href="/privacy" className="footer-link">
-                <FaChevronRight /> Privacy Policy
-              </a>
-            </li>
-            <li>
-              <a href="/terms" className="footer-link">
-                <FaChevronRight /> Terms of Service
-              </a>
-            </li>
-            <li>
-              <a href="/accessibility" className="footer-link">
-                <FaChevronRight /> Accessibility Statement
+                <FaChevronRight /> we want to hear you
               </a>
             </li>
           </ul>
@@ -851,23 +798,23 @@ const Footer = () => {
           <div className="contact-info">
             <div className="contact-item">
               <FaEnvelope className="contact-icon" />
-              <span>support@handiup.org</span>
+              <span>ESSOUBAIREDOUAN@GMAIL.COM</span>
             </div>
             <div className="contact-item">
               <FaPhone className="contact-icon" />
-              <span>+1 (555) 123-4567</span>
+              <span>+212614510462</span>
             </div>
-            <div className="contact-item">
+            {/* <div className="contact-item">
               <FaEnvelope className="contact-icon" />
-              <span>123 Accessibility Ave, Suite 100<br />Inclusion City, IC 12345</span>
-            </div>
+              <span>AGADIR <br />TECHNOPARK</span>
+            </div> */}
           </div>
         </div>
       </div>
 
       <div className="footer-bottom">
         <p className="copyright">
-          &copy; {new Date().getFullYear()} HandiUp. All rights reserved. | Designed with ♥ by ESSOUBAI REDOUAN
+          &copy; {new Date().getFullYear()} HandiUp. All rights reserved.
         </p>
       </div>
     </footer>

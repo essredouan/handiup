@@ -27,90 +27,125 @@ const spin = keyframes`
 const AdminDashboardContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
   background-color: #f5f7fa;
   min-height: 100vh;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
 `;
 
 const Header = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e1e5eb;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
 const Title = styled.h1`
   color: #2c3e50;
-  font-size: 2rem;
+  font-size: 1.8rem;
   margin: 0;
   font-weight: 600;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const CardsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Card = styled.div`
   background: #fff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   }
 `;
 
 const CardTitle = styled.h3`
   color: #7f8c8d;
-  font-size: 1rem;
+  font-size: 0.9rem;
   margin-bottom: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 `;
 
 const CardValue = styled.p`
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: #2c3e50;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const Section = styled.section`
   background: #fff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
 `;
 
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 `;
 
 const SectionTitle = styled.h2`
   color: #2c3e50;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   margin: 0;
   font-weight: 600;
+
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
+
+  @media (max-width: 768px) {
+    min-width: 100%;
+  }
 `;
 
 const TableHeader = styled.thead`
@@ -127,17 +162,19 @@ const TableRow = styled.tr`
 `;
 
 const TableHeaderCell = styled.th`
-  padding: 1rem;
+  padding: 0.75rem;
   text-align: left;
   color: #495057;
   font-weight: 600;
   border-bottom: 2px solid #e1e5eb;
+  font-size: 0.9rem;
 `;
 
 const TableCell = styled.td`
-  padding: 1rem;
+  padding: 0.75rem;
   border-bottom: 1px solid #e1e5eb;
   color: #495057;
+  font-size: 0.9rem;
 `;
 
 const EmailCell = styled(TableCell)`
@@ -149,8 +186,14 @@ const RoleCell = styled(TableCell)`
   text-transform: capitalize;
 `;
 
+const StatusCell = styled(TableCell)`
+  color: ${props => props.disabled ? '#e74c3c' : '#2ecc71'};
+  font-weight: 500;
+`;
+
 const ActionCell = styled(TableCell)`
   text-align: right;
+  white-space: nowrap;
 `;
 
 const PostContent = styled.div`
@@ -164,17 +207,22 @@ const PrimaryButton = styled.button`
   background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 
   &:hover {
     background: linear-gradient(135deg, #2980b9, #3498db);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
   }
 `;
 
@@ -182,18 +230,23 @@ const DeleteButton = styled.button`
   background: #fff;
   color: #e74c3c;
   border: 1px solid #e74c3c;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 
   &:hover {
     background: #e74c3c;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
   }
 `;
 
@@ -212,24 +265,30 @@ const ModalOverlay = styled.div`
 
 const ModalBox = styled.div`
   background-color: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   max-width: 400px;
   width: 90%;
   text-align: center;
   animation: ${fadeIn} 0.3s ease;
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
 `;
 
 const ModalTitle = styled.h3`
   color: #2c3e50;
   margin-top: 0;
   margin-bottom: 1rem;
+  font-size: 1.2rem;
 `;
 
 const ModalMessage = styled.p`
   color: #495057;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 `;
 
 const ModalButtons = styled.div`
@@ -239,13 +298,13 @@ const ModalButtons = styled.div`
 `;
 
 const ModalButton = styled.button`
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 
   &:hover {
     transform: translateY(-2px);
@@ -268,35 +327,66 @@ const Message = styled.div`
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  border-radius: 6px;
   color: white;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   animation: ${slideIn} 0.3s ease, ${fadeOut} 0.5s ease 3s forwards;
+  font-size: 0.9rem;
   ${props => props.type === 'success' && css`
     background: linear-gradient(135deg, #2ecc71, #27ae60);
   `}
   ${props => props.type === 'error' && css`
     background: linear-gradient(135deg, #e74c3c, #c0392b);
   `}
+
+  @media (max-width: 480px) {
+    right: 10px;
+    left: 10px;
+    top: 10px;
+    text-align: center;
+  }
 `;
 
 const LoadingSpinner = styled.div`
   display: inline-block;
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   border-top-color: #3498db;
   animation: ${spin} 1s ease-in-out infinite;
-  margin: 2rem auto;
+  margin: 1.5rem auto;
 `;
 
 const LoadingContainer = styled.div`
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
+const FilterButton = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #e1e5eb;
+  background-color: ${props => props.active ? '#3498db' : '#fff'};
+  color: ${props => props.active ? '#fff' : '#495057'};
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+
+  &:hover {
+    background-color: ${props => props.active ? '#2980b9' : '#f8f9fa'};
+  }
 `;
 
 function AdminDashboard() {
@@ -313,6 +403,7 @@ function AdminDashboard() {
     onCancel: null
   });
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [userFilter, setUserFilter] = useState('all');
 
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -393,6 +484,20 @@ function AdminDashboard() {
     setShowModal(true);
   };
 
+  // Calculate statistics
+  const disabledUsersCount = users.filter(user => user.disabled).length;
+  const organizationUsersCount = users.filter(user => user.role === 'organization').length;
+  const volunteerUsersCount = users.filter(user => user.role === 'volunteer').length;
+
+  // Filter users based on selected filter
+  const filteredUsers = users.filter(user => {
+    if (userFilter === 'all') return true;
+    if (userFilter === 'disabled') return user.disabled;
+    if (userFilter === 'organizations') return user.role === 'organization';
+    if (userFilter === 'volunteers') return user.role === 'volunteer';
+    return true;
+  });
+
   if (loading) {
     return (
       <LoadingContainer>
@@ -421,6 +526,18 @@ function AdminDashboard() {
           <CardValue>{users.length}</CardValue>
         </Card>
         <Card>
+          <CardTitle>Disabled Users</CardTitle>
+          <CardValue>{disabledUsersCount}</CardValue>
+        </Card>
+        <Card>
+          <CardTitle>Organizations</CardTitle>
+          <CardValue>{organizationUsersCount}</CardValue>
+        </Card>
+        <Card>
+          <CardTitle>Volunteers</CardTitle>
+          <CardValue>{volunteerUsersCount}</CardValue>
+        </Card>
+        <Card>
           <CardTitle>Total Posts</CardTitle>
           <CardValue>{posts.length}</CardValue>
         </Card>
@@ -429,6 +546,32 @@ function AdminDashboard() {
       <Section>
         <SectionHeader>
           <SectionTitle>User Management</SectionTitle>
+          <FilterContainer>
+            <FilterButton 
+              active={userFilter === 'all'} 
+              onClick={() => setUserFilter('all')}
+            >
+              All Users
+            </FilterButton>
+            <FilterButton 
+              active={userFilter === 'disabled'} 
+              onClick={() => setUserFilter('disabled')}
+            >
+              Disabled
+            </FilterButton>
+            <FilterButton 
+              active={userFilter === 'organizations'} 
+              onClick={() => setUserFilter('organizations')}
+            >
+              Organizations
+            </FilterButton>
+            <FilterButton 
+              active={userFilter === 'volunteers'} 
+              onClick={() => setUserFilter('volunteers')}
+            >
+              Volunteers
+            </FilterButton>
+          </FilterContainer>
         </SectionHeader>
         <Table>
           <TableHeader>
@@ -436,15 +579,19 @@ function AdminDashboard() {
               <TableHeaderCell>Username</TableHeaderCell>
               <TableHeaderCell>Email</TableHeaderCell>
               <TableHeaderCell>Role</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
               <TableHeaderCell>Actions</TableHeaderCell>
             </TableRow>
           </TableHeader>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <TableRow key={user._id}>
                 <TableCell>{user.username}</TableCell>
                 <EmailCell>{user.email}</EmailCell>
                 <RoleCell>{user.role}</RoleCell>
+                <StatusCell disabled={user.disabled}>
+                  {user.disabled ? 'Disabled' : 'Active'}
+                </StatusCell>
                 <ActionCell>
                   <DeleteButton onClick={() => handleDeleteUser(user._id)}>
                     Delete
