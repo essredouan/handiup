@@ -7,6 +7,7 @@ import {
   deletePostCtrl,
   getPostsCountCtrl,
   toggleLikeCtrl,
+  getUserPostsCtrl, // زدت هاد الدالة
 } from "../controllers/postsController.js";
 import photoUpload from "../middleware/photoUpload.js";
 import {
@@ -29,6 +30,9 @@ router.get("/", getAllPostsCtrl);
 
 // ✅ بوست معين حسب ID
 router.get("/:id", validateObjectid, getPostByIdCtrl);
+
+// ✅ جلب بوستات المستخدم الحالي
+router.get("/user", verifyToken, getUserPostsCtrl);
 
 // ✅ إنشاء بوست جديد
 router.post(

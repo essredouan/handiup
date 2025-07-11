@@ -6,6 +6,11 @@ import {
   profilePhotoUploadCtrl,
   deleteUserProfileCtrl,
   getUsersCountCtrl,
+  getUserConversationsCtrl,
+  getChatMessagesCtrl,
+  sendMessageCtrl,
+  searchUsersCtrl,
+  markMessagesAsReadCtrl
 } from "../controllers/usersController.js";
 import photoUpload from "../middleware/photoUpload.js";
 import {
@@ -16,10 +21,10 @@ import {
 
 const router = express.Router();
 
-// ✅ عدد المستخدمين - Admin فقط
+// عدد المستخدمين - Admin فقط
 router.get("/count/all", verifyTokenAndAdmin, getUsersCountCtrl);
 
-// ✅ رفع صورة البروفايل
+// رفع صورة البروفايل
 router.post(
   "/profile-photo-upload",
   verifyToken,
@@ -27,19 +32,34 @@ router.post(
   profilePhotoUploadCtrl
 );
 
-// ✅ ⬅️ إضافة هذا السطر لحل المشكل
+// الحصول على بروفايل المستخدم الحالي
 router.get("/profile", verifyToken, getUserProfileCtrl);
 
-// ✅ جميع المستخدمين - Admin فقط
+// جميع المستخدمين - Admin فقط
 router.get("/", verifyTokenAndAdmin, getAllUsersCtrl);
 
-// ✅ مستخدم معين - متاح للجميع
-router.get("/:id", verifyToken,verifyTokenAndAuthorization,getUserProfileCtrl);
+// جلب بروفايل مستخدم معين - أي مستخدم مسجل دخول يقدر يشوف
+router.get("/:id", verifyToken, getUserProfileCtrl);
 
-// ✅ تحديث البروفايل - المستخدم نفسه فقط
+// تحديث بروفايل - المستخدم نفسه فقط
 router.put("/:id", verifyTokenAndAuthorization, updateUserProfileCtrl);
 
-// ✅ حذف حساب المستخدم - المستخدم نفسه أو Admin
-router.delete("/:id", verifyToken, deleteUserProfileCtrl);
+// حذف حساب المستخدم - المستخدم نفسه فقط أو Admin
+router.delete("/:id", verifyTokenAndAuthorization, deleteUserProfileCtrl);
+
+// المحادثات
+router.get("/conversations/all", verifyToken, getUserConversationsCtrl);
+
+// رسائل محادثة معينة (تم توحيد اسم الـ param)
+router.get("/messages/:otherUserId", verifyToken, getChatMessagesCtrl);
+
+// إرسال رسالة
+router.post("/messages/send", verifyToken, sendMessageCtrl);
+
+// البحث عن مستخدمين
+router.get("/search/users", verifyToken, searchUsersCtrl);
+
+// تحديد الرسائل كمقروءة (تم إضافة param otherUserId)
+router.put("/messages/mark-read/:otherUserId", verifyToken, markMessagesAsReadCtrl);
 
 export default router;

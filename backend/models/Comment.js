@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import Joi from 'joi';
+import JoiObjectId from 'joi-objectid';
+
+Joi.objectId = JoiObjectId(Joi); // تعريف نوع ObjectId ف Joi
 
 const CommentSchema = new mongoose.Schema({
   post: {
@@ -40,7 +43,7 @@ const Comment = mongoose.model('Comment', CommentSchema);
 // VALIDATION CREATE COMMENT
 function validateCreateComment(obj) {
   const schema = Joi.object({
-    post: Joi.string().required(),
+    post: Joi.objectId().required(),      // غيرنا هاد السطر لـ ObjectId
     text: Joi.string().trim().required(),
   });
   return schema.validate(obj);

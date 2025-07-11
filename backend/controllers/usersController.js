@@ -1,16 +1,18 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import { User, validateUpdateUser } from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import { cloudinaryUploadImage, cloudinaryRemoveImage } from "../utils/cloudinary.js";
-import { fileURLToPath } from 'url'; // ✅ مضاف لتعريف __dirname
-import fs from 'fs';  // delete photo from system
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import Post from "../models/post.js";
 import CommentObj from "../models/Comment.js";
+import Message from "../models/Message.js";
 const { Comment } = CommentObj;
 
-const __filename = fileURLToPath(import.meta.url);   // ✅
-const __dirname = path.dirname(__filename);          // ✅
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Get all users (Admin only)
 export const getAllUsersCtrl = asyncHandler(async (req, res) => {
@@ -18,23 +20,26 @@ export const getAllUsersCtrl = asyncHandler(async (req, res) => {
   res.status(200).json(users);
 });
 
-// Get one user
+// Get one user (by id or self)
 export const getUserProfileCtrl = asyncHandler(async (req, res) => {
-  // استعمل إما id من params أو id ديال المستخدم من التوكن
   const userId = req.params.id || req.user.id;
-
   const user = await User.findById(userId).select("-password").populate("posts");
   if (!user) {
-    return res.status(404).json({ message: "user not found" });
+    return res.status(404).json({ message: "User not found" });
   }
   res.status(200).json(user);
 });
 
-// update user profile only user
+// Update user profile (only user itself or admin)
 export const updateUserProfileCtrl = asyncHandler(async (req, res) => {
   const { error } = validateUpdateUser(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
+  }
+
+  // Check authorization: user can update only their own profile or if admin
+  if (req.user.id !== req.params.id && !req.user.isAdmin) {
+    return res.status(403).json({ message: "Not authorized to update this profile" });
   }
 
   if (req.body.password) {
@@ -47,41 +52,44 @@ export const updateUserProfileCtrl = asyncHandler(async (req, res) => {
     {
       $set: {
         username: req.body.username,
+        bio: req.body.bio,
+        email: req.body.email,
+        phone: req.body.phone,
+        address: req.body.address,
         password: req.body.password,
-        bio: req.body.bio
+        role: req.body.role,
       }
     },
     { new: true }
   ).select("-password");
 
+  if (!updatedUser) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
   res.status(200).json(updatedUser);
 });
 
-// get users count
+// Get users count
 export const getUsersCountCtrl = asyncHandler(async (req, res) => {
-  const count = await User.count();
+  const count = await User.countDocuments();
   res.status(200).json(count);
 });
 
-// profile photo upload
+// Profile photo upload
 export const profilePhotoUploadCtrl = asyncHandler(async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ message: "no file provided" });
+    return res.status(400).json({ message: "No file provided" });
   }
 
   const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-  // upload to cloudinary
   const result = await cloudinaryUploadImage(imagePath);
- 
-  // get the user from db
   const user = await User.findById(req.user.id);
 
-  // delete the old prfl photo from db if exist
-  if (user.profilePhoto.publicId !== null){
+  if (user.profilePhoto?.publicId) {
     await cloudinaryRemoveImage(user.profilePhoto.publicId);
   }
 
-  // change the profile photo in the db
   user.profilePhoto = {
     url: result.secure_url,
     publicId: result.public_id,
@@ -89,51 +97,154 @@ export const profilePhotoUploadCtrl = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // جواب user
   res.status(200).json({ 
-    message: "your profile photo uploaded",   
+    message: "Your profile photo uploaded",   
     profilePhoto: { url: result.secure_url, publicId: result.public_id }
   });
 
-  // remove image from img folder
   fs.unlinkSync(imagePath);
 });
 
 // Delete user account
-// Route: DELETE /api/users/profile/:id
-// Access: Private (User or Admin)
 export const deleteUserProfileCtrl = asyncHandler(async (req, res) => {
-  // 1. جلب المستخدم من قاعدة البيانات عن طريق ID فـ params
   const user = await User.findById(req.params.id);
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
 
-  // ✅ Get all posts from db
   const posts = await Post.find({ user: user._id });
-
-  // ✅ Get the public ids from the posts
   const publicIds = posts.map(post => post.image?.publicId).filter(Boolean);
 
-  // ✅ Delete all posts from DB
   await Post.deleteMany({ user: user._id });
-
-  // ✅ Delete all comments made by the user
   await Comment.deleteMany({ user: user._id });
 
-  // ✅ Delete images from Cloudinary
   for (const publicId of publicIds) {
     await cloudinaryRemoveImage(publicId);
   }
 
-  // 2. إذا عندو صورة بروفايل نحيدوها من Cloudinary
-  if (user.profilePhoto && user.profilePhoto.publicId) {
+  if (user.profilePhoto?.publicId) {
     await cloudinaryRemoveImage(user.profilePhoto.publicId);
   }
 
-  // 3. نحيد المستخدم من قاعدة البيانات
   await User.findByIdAndDelete(req.params.id);
 
-  // 4. نردو جواب النجاح
   res.status(200).json({ message: "User account has been deleted" });
+});
+
+// Get chat messages between two users
+export const getChatMessagesCtrl = asyncHandler(async (req, res) => {
+  const { otherUserId } = req.params;
+  const myUserId = req.user.id;
+
+  const messages = await Message.find({
+    $or: [
+      { sender: myUserId, receiver: otherUserId },
+      { sender: otherUserId, receiver: myUserId },
+    ]
+  }).sort({ createdAt: 1 });
+
+  res.status(200).json(messages);
+});
+
+// Get user conversations (latest message per conversation)
+export const getUserConversationsCtrl = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const conversations = await Message.aggregate([
+    {
+      $match: {
+        $or: [
+          { sender: new mongoose.Types.ObjectId(userId) },
+          { receiver: new mongoose.Types.ObjectId(userId) }
+        ]
+      }
+    },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: {
+          $cond: [
+            { $eq: ['$sender', new mongoose.Types.ObjectId(userId)] },
+            '$receiver',
+            '$sender'
+          ]
+        },
+        lastMessage: { $first: '$$ROOT' }
+      }
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'user'
+      }
+    },
+    { $unwind: '$user' },
+    {
+      $project: {
+        _id: 0,
+        userId: '$user._id',
+        username: '$user.username',
+        lastMessage: '$lastMessage.content',
+        createdAt: '$lastMessage.createdAt'
+      }
+    },
+    { $sort: { createdAt: -1 } }
+  ]);
+
+  res.status(200).json(conversations);
+});
+
+// Mark messages as read between users
+export const markMessagesAsReadCtrl = asyncHandler(async (req, res) => {
+  const myUserId = req.user.id;
+  const { otherUserId } = req.params;
+
+  await Message.updateMany(
+    {
+      sender: otherUserId,
+      receiver: myUserId,
+      read: false
+    },
+    {
+      $set: { read: true }
+    }
+  );
+
+  res.status(200).json({ message: "Messages marked as read" });
+});
+
+// Search users by username
+export const searchUsersCtrl = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+
+  if (!query) {
+    return res.status(400).json({ message: "Query parameter is required" });
+  }
+
+  const users = await User.find({
+    username: { $regex: query, $options: 'i' }
+  }).select("-password").limit(10);
+
+  res.status(200).json(users);
+});
+
+// Send a message
+export const sendMessageCtrl = asyncHandler(async (req, res) => {
+  const senderId = req.user.id;
+  const { receiverId, content } = req.body;
+
+  if (!receiverId || !content) {
+    return res.status(400).json({ message: "receiverId and content are required" });
+  }
+
+  const newMessage = await Message.create({
+    sender: senderId,
+    receiver: receiverId,
+    content,
+    read: false,
+  });
+
+  res.status(201).json(newMessage);
 });

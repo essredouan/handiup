@@ -12,24 +12,17 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "No image file provided" });
   }
 
-  // Validate data before uploading image
   const { error } = validateCreatePost(req.body);
   if (error) {
-    // Delete uploaded image from server if validation fails
     fs.unlinkSync(path.join(process.cwd(), "images", req.file.filename));
-    return res
-      .status(400)
-      .json({ message: error.details.map((e) => e.message).join(", ") });
+    return res.status(400).json({ message: error.details.map((e) => e.message).join(", ") });
   }
 
-  // Upload image to Cloudinary
   const imagePath = path.join(process.cwd(), "images", req.file.filename);
   const result = await cloudinaryUploadImage(imagePath);
 
-  // Remove image from local server
   fs.unlinkSync(imagePath);
 
-  // Create post in DB
   const post = new Post({
     title: req.body.title,
     description: req.body.description,
@@ -49,10 +42,18 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
   });
 });
 
-// get all posts
-// /api/posts
-// method get
-// access public
+// جلب بوستات المستخدم الحالي
+export const getUserPostsCtrl = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const posts = await Post.find({ user: userId }).populate("category", "title");
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to get user posts" });
+  }
+});
+
+// Get all posts
 export const getAllPostsCtrl = asyncHandler(async (req, res) => {
   const POST_PER_PAGE = 3;
   const { pageNumber, category } = req.query;
@@ -60,17 +61,17 @@ export const getAllPostsCtrl = asyncHandler(async (req, res) => {
 
   if (pageNumber) {
     posts = await Post.find()
-      .populate("user", "-password")
+      .populate("user", "username role")
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * POST_PER_PAGE)
       .limit(POST_PER_PAGE);
   } else if (category) {
     posts = await Post.find({ category })
-      .populate("user", "-password")
+      .populate("user", "username role")
       .sort({ createdAt: -1 });
   } else {
     posts = await Post.find()
-      .populate("user", "-password")
+      .populate("user", "username role")
       .sort({ createdAt: -1 });
   }
 
@@ -86,70 +87,51 @@ export const getPostByIdCtrl = asyncHandler(async (req, res) => {
   res.status(200).json(post);
 });
 
-// Delete post
-// @desc    Delete a post
-// @route   DELETE /api/posts/:id
-// @access  Private (Owner or Admin)
+// Delete post (owner or admin)
 export const deletePostCtrl = asyncHandler(async (req, res) => {
   const postId = req.params.id;
 
-  // ⛔ تحقق واش البوست كاين
   const post = await Post.findById(postId);
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
   }
 
-  // ✅ تحقق من الصلاحيات (صاحب البوست أو admin)
-  if (post.user && req.user.id !== post.user.toString() && req.user.role !== "admin") {
+  if (post.user && req.user.id !== post.user.toString() && !req.user.isAdmin) {
     return res.status(403).json({ message: "Not authorized to delete this post" });
   }
 
-  // 🧹 حذف الصورة من Cloudinary إذا كاينة
   if (post.image?.publicId) {
     await cloudinaryRemoveImage(post.image.publicId);
-
-    // delete all comment that belong to post
-    await Comment.deleteMany({post: post._id});
+    await Comment.deleteMany({ post: post._id });
   }
 
-  // 🗑️ حذف البوست
   await post.deleteOne();
 
   res.status(200).json({ message: "Post deleted successfully" });
 });
 
-// delete all comment that belong to post
- 
-// get all posts
-// /api/posts
-// method get
-// access public
+// Get posts count
 export const getPostsCountCtrl = asyncHandler(async (req, res) => {
   const count = await Post.countDocuments();
   res.status(200).json({ count });
 });
 
-//update post
-// only owner post
+// Update post (owner or admin)
 export const updatePostCtrl = asyncHandler(async (req, res) => {
-  // Validate data قبل التحديث
   const { error } = validateUpdatePost(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  // جلب البوست اللي بغينا نحدّثوه
   const post = await Post.findById(req.params.id);
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
   }
 
-  // check if post belong to logged in user OR admin
   if (req.user.id !== post.user.toString() && !req.user.isAdmin) {
     return res.status(403).json({ message: "Not authorized to update this post" });
   }
 
-  // تحديث البيانات (إذا موجودة في req.body)
   const updatedPost = await Post.findByIdAndUpdate(
     req.params.id,
     {
@@ -162,15 +144,11 @@ export const updatePostCtrl = asyncHandler(async (req, res) => {
     { new: true }
   ).populate("user", "-password");
 
-  // sent res to client
   res.status(200).json({ updatedPost });
 });
 
-// update post image
-// api /posts/upload-image/:id
-// only logged user
+// Update post image
 export const updatePostImageCtrl = asyncHandler(async (req, res) => {
-    // validation
   if (!req.file) {
     return res.status(400).json({ message: "No image provided" });
   }
@@ -179,12 +157,12 @@ export const updatePostImageCtrl = asyncHandler(async (req, res) => {
 
   const result = await cloudinaryUploadImage(imagePath);
 
-  // get the post from db
   const post = await Post.findById(req.params.id);
   if (!post) {
     fs.unlinkSync(imagePath);
     return res.status(404).json({ message: "Post not found" });
   }
+
   if (req.user.id !== post.user.toString() && !req.user.isAdmin) {
     fs.unlinkSync(imagePath);
     return res.status(403).json({ message: "Not authorized to update post image" });
@@ -206,30 +184,21 @@ export const updatePostImageCtrl = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Post image updated successfully", image: post.image });
 });
 
-
-// toggle like
-// @route   PUT /api/posts/like/:id
-// @access  Private (only logged in user)
+// Toggle like/unlike post
 export const toggleLikeCtrl = asyncHandler(async (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
 
-  // ⛔ التحقق من وجود البوست
   const post = await Post.findById(postId);
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
   }
 
-  // ✅ التحقق واش المستخدم دار لايك من قبل
   const alreadyLiked = post.likes.includes(userId);
 
   if (alreadyLiked) {
-    // 🔄 حذف الإعجاب
-    post.likes = post.likes.filter(
-      (id) => id.toString() !== userId.toString()
-    );
+    post.likes = post.likes.filter(id => id.toString() !== userId.toString());
   } else {
-    // ❤️ إضافة الإعجاب
     post.likes.push(userId);
   }
 
