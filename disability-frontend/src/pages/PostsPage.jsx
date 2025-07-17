@@ -1,16 +1,135 @@
-// import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { AiOutlineHome, AiOutlineLike, AiFillLike } from "react-icons/ai";
-import { FaHandsHelping, FaWheelchair, FaBuilding, FaCommentAlt } from "react-icons/fa";
-import { RiDeleteBinLine } from "react-icons/ri";
+import { 
+  AiOutlineHome, AiOutlineLike, AiFillLike, AiOutlineSound, 
+  AiOutlineFilter, AiOutlineFontSize, AiOutlineEye
+} from "react-icons/ai";
+import { FaHandsHelping, FaWheelchair, FaBuilding, FaCommentAlt, FaRegLightbulb } from "react-icons/fa";
+import { RiDeleteBinLine, RiUserVoiceFill } from "react-icons/ri";
+import { MdHighQuality, MdAccessibility } from "react-icons/md";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useEffect, useState, useRef } from "react";
+import styled, { keyframes } from "styled-components";
 
+// Styled Components
+const pulse = keyframes`
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 111, 165, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(74, 111, 165, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 111, 165, 0); }
+`;
 
+const Container = styled.div`
+  background-color: ${props => props.theme.bg};
+  color: ${props => props.theme.text};
+  min-height: 100vh;
+  font-size: ${props => props.theme.fontSize};
+  transition: ${props => props.theme.transition};
+  padding-bottom: 60px;
+`;
 
+const Header = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, ${props => props.theme.primary} 0%, ${props => props.theme.secondary} 100%);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: ${props => props.theme.shadow};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
 
+const AccessibilityPanel = styled.div`
+  background-color: ${props => props.isHighContrast ? props.theme.cardBg : 'rgba(255,255,255,0.9)'};
+  padding: 12px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid ${props => props.theme.border};
+  backdrop-filter: blur(5px);
+`;
 
+const PostCard = styled(motion.article)`
+  background-color: ${props => props.theme.cardBg};
+  border-radius: ${props => props.theme.borderRadius};
+  box-shadow: ${props => props.theme.shadow};
+  margin-bottom: 24px;
+  overflow: hidden;
+  border: 1px solid ${props => props.theme.border};
+  transition: ${props => props.theme.transition};
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: ${props => props.theme.shadowHover};
+  }
+`;
+
+const SpeechIndicator = styled.span`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  background-color: ${props => props.theme.error};
+  border-radius: 50%;
+  animation: ${pulse} 1.5s infinite;
+`;
+
+const FloatingActionButton = styled(motion.button)`
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${props => props.theme.primary} 0%, ${props => props.theme.secondary} 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: ${props => props.theme.shadow};
+  z-index: 100;
+  font-size: 1.5em;
+`;
+
+const CategoryChip = styled(motion.button)`
+  padding: 10px 15px;
+  background: ${props => props.active ? props.theme.primary : 'transparent'};
+  color: ${props => props.active ? 'white' : props.theme.text};
+  border: 1px solid ${props => props.active ? props.theme.primary : props.theme.border};
+  border-radius: ${props => props.theme.borderRadius};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: ${props => props.theme.transition};
+  font-weight: ${props => props.active ? '600' : '400'};
+  
+  &:hover {
+    background: ${props => props.active ? props.theme.primary : props.theme.border};
+  }
+`;
+
+const CommentInput = styled(motion.input)`
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid ${props => props.theme.border};
+  border-radius: 24px;
+  background: ${props => props.theme.cardBg};
+  color: ${props => props.theme.text};
+  font-size: ${props => props.theme.fontSize};
+  outline: none;
+  transition: ${props => props.theme.transition};
+  
+  &:focus {
+    border-color: ${props => props.theme.primary};
+    box-shadow: 0 0 0 2px ${props => props.theme.primary}20;
+  }
+`;
 
 function PostsPage() {
   const [posts, setPosts] = useState([]);
@@ -21,27 +140,90 @@ function PostsPage() {
   const [fontSize, setFontSize] = useState(16);
   const [announceMessage, setAnnounceMessage] = useState("");
   const [activePost, setActivePost] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentSpeechPost, setCurrentSpeechPost] = useState(null);
+  const [expandedImage, setExpandedImage] = useState(null);
   const navigate = useNavigate();
   const postsContainerRef = useRef(null);
+  const speechSynthesisRef = useRef(null);
 
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
   const userId = localStorage.getItem("userId");
 
-  // Announcement function for screen readers
-  const announce = (message) => {
-    setAnnounceMessage(message);
-    setTimeout(() => setAnnounceMessage(""), 1000);
+  // Theme configuration
+  const theme = {
+    bg: isHighContrast ? '#121212' : '#f5f7fa',
+    text: isHighContrast ? '#ffffff' : '#2d3748',
+    primary: isHighContrast ? '#bb86fc' : '#4a6fa5',
+    secondary: isHighContrast ? '#03dac6' : '#4a8c7a',
+    danger: isHighContrast ? '#cf6679' : '#c44545',
+    cardBg: isHighContrast ? '#1e1e1e' : '#ffffff',
+    border: isHighContrast ? '#bb86fc' : '#e2e8f0',
+    fontSize: `${fontSize}px`,
+    transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+    borderRadius: '12px',
+    shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    shadowHover: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    success: isHighContrast ? '#4caf50' : '#38a169',
+    warning: isHighContrast ? '#ff9800' : '#ed8936',
+    info: isHighContrast ? '#2196f3' : '#4299e1',
+    error: isHighContrast ? '#f44336' : '#e53e3e'
   };
 
-  // Fetch posts with animation delay
+  // Speech synthesis functions
+  const speakText = (text, postId = null) => {
+    if (!speechSynthesisRef.current) {
+      showNotification("Text-to-speech not supported in your browser", "warning");
+      return;
+    }
+
+    speechSynthesisRef.current.cancel();
+    
+    if (postId === currentSpeechPost && isSpeaking) {
+      setIsSpeaking(false);
+      setCurrentSpeechPost(null);
+      announce("Speech stopped");
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setCurrentSpeechPost(null);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setCurrentSpeechPost(null);
+      showNotification("Error with text-to-speech", "error");
+    };
+
+    speechSynthesisRef.current.speak(utterance);
+    setIsSpeaking(true);
+    setCurrentSpeechPost(postId);
+    announce("Reading post content");
+  };
+
+  const stopSpeech = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+      setIsSpeaking(false);
+      setCurrentSpeechPost(null);
+      announce("Speech stopped");
+    }
+  };
+
+  // Data fetching
   const fetchPosts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/posts");
       setPosts(res.data);
       announce(`${res.data.length} posts loaded`);
 
-      // Fetch comments for each post
       const commentsData = await Promise.all(
         res.data.map(async (post) => {
           try {
@@ -50,7 +232,6 @@ function PostsPage() {
             );
             return { postId: post._id, comments: resComments.data };
           } catch (err) {
-            console.error("Error fetching comments:", err);
             return { postId: post._id, comments: [] };
           }
         })
@@ -62,19 +243,25 @@ function PostsPage() {
       });
       setComments(commentsMap);
     } catch (error) {
-      console.error("Error fetching posts:", error);
       announce("Error loading posts");
+      showNotification("Failed to load posts", "error");
     }
   };
 
   useEffect(() => {
+    speechSynthesisRef.current = window.speechSynthesis;
     fetchPosts();
+    return () => {
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
   }, []);
 
   // Post interaction handlers
   const handleLike = async (postId) => {
     if (!token) {
-      alert("Please login to like posts");
+      showNotification("Please login to like posts", "warning");
       return;
     }
     try {
@@ -85,20 +272,20 @@ function PostsPage() {
       );
       fetchPosts();
       announce("Post liked");
+      showNotification("Post liked!", "success");
     } catch (err) {
-      console.error("Failed to like:", err);
-      alert(err.response?.data?.message || "Failed to like the post");
+      showNotification(err.response?.data?.message || "Failed to like the post", "error");
     }
   };
 
   const handleComment = async (postId) => {
     if (!token) {
-      alert("Please login to comment");
+      showNotification("Please login to comment", "warning");
       return;
     }
     const comment = commentText[postId];
     if (!comment?.trim()) {
-      alert("Please write a comment first");
+      showNotification("Please write a comment first", "warning");
       return;
     }
 
@@ -116,23 +303,24 @@ function PostsPage() {
       }));
 
       announce("Comment added");
+      showNotification("Comment posted!", "success");
     } catch (err) {
-      console.error("Failed to comment:", err);
-      alert(err.response?.data?.message || "Failed to send comment");
+      showNotification(err.response?.data?.message || "Failed to send comment", "error");
     }
   };
 
   const handleDelete = async (postId) => {
-    if (!window.confirm("Delete this post permanently?")) return;
     try {
       await axios.delete(`http://localhost:5000/api/posts/${postId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       announce("Post deleted");
+      showNotification("Post deleted successfully", "success");
       fetchPosts();
+      setShowDeleteConfirm(null);
     } catch (err) {
-      console.error("Failed to delete:", err);
-      alert(err.response?.data?.message || "Failed to delete post");
+      showNotification(err.response?.data?.message || "Failed to delete post", "error");
+      setShowDeleteConfirm(null);
     }
   };
 
@@ -146,239 +334,165 @@ function PostsPage() {
     setActivePost(activePost === postId ? null : postId);
   };
 
-  // Filter options
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const announce = (message) => {
+    setAnnounceMessage(message);
+    setTimeout(() => setAnnounceMessage(""), 1000);
+  };
+
   const filterOptions = [
     { value: "", label: "All", icon: <AiOutlineHome /> },
-    { value: "volunteer", label: "Volunteer",  },
-    { value: "disabled", label: "Disabled", },
-    { value: "organization", label: "Organization", },
+    { value: "volunteer", label: "Volunteer", icon: <FaHandsHelping /> },
+    { value: "disabled", label: "Disabled", icon: <FaWheelchair /> },
+    { value: "organization", label: "Organization", icon: <FaBuilding /> },
   ];
 
   const filteredPosts = filterCategory
     ? posts.filter(post => post.category === filterCategory)
     : posts;
 
-  // Keyboard navigation
-  const handleKeyDown = (e, action, ...args) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      action(...args);
-    }
-  };
-
-  // CSS classes with theme variables
-  const theme = {
-    bg: isHighContrast ? '#121212' : '#f8f9fa',
-    text: isHighContrast ? '#ffffff' : '#333333',
-    primary: isHighContrast ? '#bb86fc' : '#4a6fa5',
-    secondary: isHighContrast ? '#03dac6' : '#4a8c7a',
-    danger: isHighContrast ? '#cf6679' : '#c44545',
-    cardBg: isHighContrast ? '#1e1e1e' : '#ffffff',
-    border: isHighContrast ? '#bb86fc' : '#e0e0e0',
-    fontSize: `${fontSize}px`,
-    transition: 'all 0.3s ease',
-    borderRadius: '12px',
-    shadow: '0 2px 10px rgba(0,0,0,0.08)',
-    shadowHover: '0 4px 15px rgba(0,0,0,0.12)'
-  };
-
-  // Component styles
-  const styles = {
-    container: {
-      backgroundColor: theme.bg,
-      color: theme.text,
-      minHeight: '100vh',
-      fontSize: theme.fontSize,
-      transition: theme.transition,
-      paddingBottom: '60px'
-    },
-    screenReader: {
-      position: 'absolute',
-      left: '-10000px'
-    },
-    header: {
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      backgroundColor: theme.primary,
-      color: 'white',
-      padding: '15px 20px',
-      boxShadow: theme.shadow,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    accessibilityControls: {
-      backgroundColor: isHighContrast ? '#1e1e1e' : '#f0f0f0',
-      padding: '12px 20px',
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '12px',
-      alignItems: 'center',
-      borderBottom: `1px solid ${theme.border}`
-    },
-    mainContent: {
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '20px'
-    },
-    filterButton: (active) => ({
-      padding: '10px 15px',
-      background: active ? theme.primary : 'transparent',
-      color: active ? 'white' : theme.text,
-      border: `1px solid ${active ? theme.primary : theme.border}`,
-      borderRadius: theme.borderRadius,
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      transition: theme.transition,
-      fontWeight: active ? '600' : '400'
-    }),
-    postCard: {
-      backgroundColor: theme.cardBg,
-      borderRadius: theme.borderRadius,
-      boxShadow: theme.shadow,
-      marginBottom: '24px',
-      overflow: 'hidden',
-      border: `1px solid ${theme.border}`,
-      transition: theme.transition,
-      ':hover': {
-        boxShadow: theme.shadowHover
-      }
-    },
-    postHeader: {
-      padding: '16px 20px',
-      borderBottom: `1px solid ${theme.border}`,
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    postTitle: {
-      margin: 0,
-      color: theme.primary,
-      fontSize: '1.25em',
-      fontWeight: '600'
-    },
-    categoryBadge: {
-      backgroundColor: theme.secondary,
-      color: 'white',
-      padding: '5px 12px',
-      borderRadius: '20px',
-      fontSize: '0.85em',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-      fontWeight: '500'
-    },
-    postContent: {
-      padding: '20px'
-    },
-    actionButton: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      color: theme.text,
-      padding: '6px 8px',
-      borderRadius: '6px',
-      transition: theme.transition,
-      ':hover': {
-        backgroundColor: isHighContrast ? '#2d2d2d' : '#f5f5f5'
-      }
-    },
-    commentInput: {
-      flex: 1,
-      padding: '12px 16px',
-      border: `1px solid ${theme.border}`,
-      borderRadius: '24px',
-      background: theme.cardBg,
-      color: theme.text,
-      fontSize: theme.fontSize,
-      outline: 'none',
-      transition: theme.transition,
-      ':focus': {
-        borderColor: theme.primary,
-        boxShadow: `0 0 0 2px ${theme.primary}20`
-      }
-    },
-    submitButton: {
-      padding: '0 20px',
-      background: theme.primary,
-      color: 'white',
-      border: 'none',
-      borderRadius: '24px',
-      cursor: 'pointer',
-      fontWeight: '500',
-      transition: theme.transition,
-      ':hover': {
-        opacity: 0.9
-      }
-    },
-    commentItem: {
-      padding: '12px 16px',
-      marginBottom: '10px',
-      background: isHighContrast ? '#2d2d2d' : '#f8f8f8',
-      borderRadius: '8px',
-      borderLeft: `3px solid ${theme.primary}`
-    },
-    scrollToTop: {
-      position: 'fixed',
-      bottom: '30px',
-      right: '30px',
-      width: '50px',
-      height: '50px',
-      borderRadius: '50%',
-      background: theme.primary,
-      color: 'white',
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: theme.shadow,
-      zIndex: 100,
-      fontSize: '1.2em'
-    }
-  };
-
   return (
-    <div style={styles.container}>
+    <Container theme={theme}>
       {/* Screen Reader Announcements */}
-      <div aria-live="polite" style={styles.screenReader}>
+      <div aria-live="polite" className="sr-only">
         {announceMessage}
       </div>
 
+      {/* Notification */}
+      {notification && (
+        <motion.div
+          className="notification"
+          initial={{ x: 300, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 300, opacity: 0 }}
+          transition={{ type: 'spring', damping: 25 }}
+          style={{
+            background: theme[notification.type],
+            color: 'white'
+          }}
+        >
+          {notification.message}
+        </motion.div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <motion.div 
+          className="confirmation-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}
+        >
+          <motion.div
+            className="confirmation-dialog"
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            style={{
+              backgroundColor: theme.cardBg,
+              padding: '25px',
+              borderRadius: theme.borderRadius,
+              maxWidth: '400px',
+              width: '100%',
+              boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+              textAlign: 'center'
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: theme.text }}>Delete Post</h3>
+            <p style={{ color: theme.text }}>Are you sure you want to delete this post? This action cannot be undone.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowDeleteConfirm(null)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: theme.borderRadius,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: theme.transition,
+                  backgroundColor: theme.border,
+                  color: theme.text
+                }}
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDelete(showDeleteConfirm)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: theme.borderRadius,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: theme.transition,
+                  backgroundColor: theme.danger,
+                  color: 'white'
+                }}
+              >
+                Delete
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Header */}
-      <header style={styles.header}>
+      <Header theme={theme}>
         <motion.h1 
           initial={{ x: -20 }}
           animate={{ x: 0 }}
           style={{ margin: 0, fontSize: '1.5em', fontWeight: '600' }}
         >
-          Community Posts
+          Community Hub
         </motion.h1>
         
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/")}
             style={{
-              ...styles.actionButton,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
               color: 'white',
-              ':hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+              padding: '5px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             aria-label="Return to home"
           >
-            <AiOutlineHome size={20} />
-          </button>
+            <AiOutlineHome size={22} />
+          </motion.button>
         </div>
-      </header>
+      </Header>
 
       {/* Accessibility Controls */}
-      <div style={styles.accessibilityControls}>
-        
+      <AccessibilityPanel theme={theme} isHighContrast={isHighContrast}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <MdAccessibility size={20} style={{ color: theme.primary }} />
+          <span style={{ fontWeight: '500', color: theme.text }}>Accessibility</span>
+        </div>
         
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -398,7 +512,8 @@ function PostsPage() {
           }}
           aria-label={`Toggle ${isHighContrast ? 'light' : 'dark'} mode`}
         >
-          {isHighContrast ? 'Light Mode' : 'Dark Mode'}
+          {isHighContrast ? <MdHighQuality /> : <AiOutlineEye />}
+          {isHighContrast ? 'High Contrast' : 'Normal Mode'}
         </motion.button>
 
         <div style={{ display: 'flex', gap: '5px' }}>
@@ -413,10 +528,14 @@ function PostsPage() {
               border: `1px solid ${theme.border}`,
               borderRadius: '20px 0 0 20px',
               cursor: 'pointer',
-              fontSize: '0.9em'
+              fontSize: '0.9em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
             }}
             aria-label="Decrease font size"
           >
+            <AiOutlineFontSize />
             A-
           </motion.button>
           <motion.button
@@ -430,17 +549,46 @@ function PostsPage() {
               border: `1px solid ${theme.border}`,
               borderRadius: '0 20px 20px 0',
               cursor: 'pointer',
-              fontSize: '0.9em'
+              fontSize: '0.9em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
             }}
             aria-label="Increase font size"
           >
+            <AiOutlineFontSize />
             A+
           </motion.button>
         </div>
-      </div>
+
+        {isSpeaking && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={stopSpeech}
+            style={{
+              padding: '8px 15px',
+              background: theme.danger,
+              color: 'white',
+              border: 'none',
+              borderRadius: theme.borderRadius,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '0.9em',
+              marginLeft: 'auto'
+            }}
+            aria-label="Stop speech"
+          >
+            <RiUserVoiceFill />
+            Stop Speech
+          </motion.button>
+        )}
+      </AccessibilityPanel>
 
       {/* Main Content */}
-      <main style={styles.mainContent}>
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
         {/* Category Filters */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
@@ -448,16 +596,19 @@ function PostsPage() {
           transition={{ delay: 0.1 }}
           style={{ marginBottom: '30px' }}
         >
-          <h2 style={{ 
-            marginBottom: '15px', 
-            color: theme.primary,
-            fontSize: '1.3em'
-          }}>
-            Filter by Category
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+            <AiOutlineFilter size={20} color={theme.primary} />
+            <h2 style={{ 
+              margin: 0,
+              color: theme.primary,
+              fontSize: '1.3em'
+            }}>
+              Filter Posts
+            </h2>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {filterOptions.map((option) => (
-              <motion.button
+              <CategoryChip
                 key={option.value}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
@@ -465,34 +616,38 @@ function PostsPage() {
                   setFilterCategory(option.value);
                   announce(`Showing ${option.label} posts`);
                 }}
-                style={styles.filterButton(filterCategory === option.value)}
+                active={filterCategory === option.value}
+                theme={theme}
                 aria-label={`Filter by ${option.label}`}
                 aria-pressed={filterCategory === option.value}
               >
                 {option.icon}
                 {option.label}
-              </motion.button>
+              </CategoryChip>
             ))}
           </div>
         </motion.section>
 
         {/* Posts List */}
         <section ref={postsContainerRef}>
-          <h2 style={{ 
-            marginBottom: '20px', 
-            color: theme.primary,
-            fontSize: '1.3em'
-          }}>
-            {filterCategory ? `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)} Posts` : 'All Posts'}
-            <span style={{ 
-              fontSize: '0.8em', 
-              marginLeft: '10px', 
-              color: theme.text,
-              fontWeight: 'normal'
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <FaRegLightbulb color={theme.primary} />
+            <h2 style={{ 
+              margin: 0,
+              color: theme.primary,
+              fontSize: '1.3em'
             }}>
-              ({filteredPosts.length} posts)
-            </span>
-          </h2>
+              {filterCategory ? `${filterOptions.find(o => o.value === filterCategory)?.label} Posts` : 'Community Feed'}
+              <span style={{ 
+                fontSize: '0.8em', 
+                marginLeft: '10px', 
+                color: theme.text,
+                fontWeight: 'normal'
+              }}>
+                ({filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'})
+              </span>
+            </h2>
+          </div>
 
           {filteredPosts.length === 0 && (
             <motion.div
@@ -507,24 +662,36 @@ function PostsPage() {
                 backgroundColor: isHighContrast ? '#1e1e1e' : '#f9f9f9'
               }}
             >
-              No posts found. Be the first to create one!
+              No posts found. Be the first to share something with the community!
             </motion.div>
           )}
 
           <AnimatePresence>
             {filteredPosts.map((post) => (
-              <motion.article
+              <PostCard
                 key={post._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                style={styles.postCard}
+                theme={theme}
+                layout
               >
                 {/* Post Header */}
-                <div style={styles.postHeader}>
+                <div style={{
+                  padding: '16px 20px',
+                  borderBottom: `1px solid ${theme.border}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
                   <div>
-                    <h3 style={styles.postTitle}>
+                    <h3 style={{ 
+                      margin: 0,
+                      color: theme.primary,
+                      fontSize: '1.25em',
+                      fontWeight: '600'
+                    }}>
                       {post.title}
                     </h3>
                     {post.user?._id && (
@@ -544,12 +711,30 @@ function PostsPage() {
                         >
                           {post.user.username || 'Anonymous'}
                         </Link>
+                        <span style={{ 
+                          marginLeft: '10px',
+                          fontSize: '0.8em',
+                          color: theme.text,
+                          opacity: 0.7
+                        }}>
+                          {new Date(post.createdAt).toLocaleString()}
+                        </span>
                       </p>
                     )}
                   </div>
                   
                   {post.category && (
-                    <div style={styles.categoryBadge}>
+                    <div style={{
+                      backgroundColor: theme.secondary,
+                      color: 'white',
+                      padding: '5px 12px',
+                      borderRadius: '20px',
+                      fontSize: '0.85em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontWeight: '500'
+                    }}>
                       {filterOptions.find(o => o.value === post.category)?.icon}
                       <span>{post.category}</span>
                     </div>
@@ -557,7 +742,7 @@ function PostsPage() {
                 </div>
 
                 {/* Post Content */}
-                <div style={styles.postContent}>
+                <div style={{ padding: '20px' }}>
                   <p style={{ 
                     margin: '0 0 15px',
                     lineHeight: '1.6',
@@ -567,19 +752,27 @@ function PostsPage() {
                   </p>
 
                   {post.image?.url && (
-                    <motion.img
-                      src={post.image.url}
-                      alt={`Post by ${post.user?.username || 'user'}`}
-                      style={{
-                        maxWidth: '100%',
-                        borderRadius: '8px',
-                        marginBottom: '15px',
-                        border: `1px solid ${theme.border}`,
-                        cursor: 'pointer'
-                      }}
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => window.open(post.image.url, '_blank')}
-                    />
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <motion.img
+                        src={post.image.url}
+                        alt={`Post by ${post.user?.username || 'user'}`}
+                        style={{
+                          width: '100%',
+                          height: '300px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          marginBottom: '15px',
+                          border: `1px solid ${theme.border}`,
+                          cursor: 'pointer'
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={() => setExpandedImage(post.image.url)}
+                      />
+                    </motion.div>
                   )}
 
                   {/* Post Actions */}
@@ -595,8 +788,16 @@ function PostsPage() {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleLike(post._id)}
                         style={{
-                          ...styles.actionButton,
-                          color: post.likes.includes(userId) ? theme.primary : theme.text
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: post.likes.includes(userId) ? theme.primary : theme.text,
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          transition: theme.transition
                         }}
                         aria-label={`Like this post`}
                       >
@@ -613,24 +814,67 @@ function PostsPage() {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => toggleComments(post._id)}
                         style={{
-                          ...styles.actionButton,
-                          color: activePost === post._id ? theme.primary : theme.text
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: activePost === post._id ? theme.primary : theme.text,
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          transition: theme.transition
                         }}
                         aria-label={`${activePost === post._id ? 'Hide' : 'Show'} comments`}
                       >
                         <FaCommentAlt size={18} />
                         <span>{comments[post._id]?.length || 0}</span>
                       </motion.button>
-                    </div>
 
-                    {role === "admin" && (
+                      {/* Text-to-Speech Button */}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDelete(post._id)}
+                        onClick={() => speakText(
+                          `Post titled ${post.title}. ${post.description}. Posted by ${post.user?.username || 'Anonymous'} in ${post.category} category.`,
+                          post._id
+                        )}
                         style={{
-                          ...styles.actionButton,
-                          color: theme.danger
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: currentSpeechPost === post._id ? theme.primary : theme.text,
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          transition: theme.transition,
+                          position: 'relative'
+                        }}
+                        aria-label={`Read post aloud`}
+                      >
+                        <AiOutlineSound size={20} />
+                        {currentSpeechPost === post._id && <SpeechIndicator theme={theme} />}
+                      </motion.button>
+                    </div>
+
+                    {(role === "admin" || post.user?._id === userId) && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowDeleteConfirm(post._id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: theme.danger,
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          transition: theme.transition
                         }}
                         aria-label="Delete post"
                       >
@@ -655,7 +899,7 @@ function PostsPage() {
                           gap: '10px',
                           marginBottom: '15px'
                         }}>
-                          <input
+                          <CommentInput
                             type="text"
                             placeholder="Write a comment..."
                             value={commentText[post._id] || ""}
@@ -663,14 +907,24 @@ function PostsPage() {
                               ...commentText, 
                               [post._id]: e.target.value 
                             })}
-                            style={styles.commentInput}
+                            onKeyDown={(e) => e.key === 'Enter' && handleComment(post._id)}
+                            theme={theme}
                             aria-label="Comment input"
                           />
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => handleComment(post._id)}
-                            style={styles.submitButton}
+                            style={{
+                              padding: '0 20px',
+                              background: theme.primary,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '24px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              transition: theme.transition
+                            }}
                             aria-label="Submit comment"
                           >
                             Post
@@ -686,7 +940,13 @@ function PostsPage() {
                                   key={comment._id}
                                   initial={{ opacity: 0, x: -10 }}
                                   animate={{ opacity: 1, x: 0 }}
-                                  style={styles.commentItem}
+                                  style={{
+                                    padding: '12px 16px',
+                                    marginBottom: '10px',
+                                    background: isHighContrast ? '#2d2d2d' : '#f8f8f8',
+                                    borderRadius: '8px',
+                                    borderLeft: `3px solid ${theme.primary}`
+                                  }}
                                 >
                                   <div style={{ 
                                     display: 'flex', 
@@ -718,12 +978,13 @@ function PostsPage() {
                               ))}
                             </ul>
                           ) : (
-                            <div style={{ 
-                              textAlign: 'center', 
-                              padding: '15px',
+                            <div style={{
+                              padding: '20px',
+                              textAlign: 'center',
                               color: theme.text,
-                              opacity: 0.7,
-                              fontSize: '0.9em'
+                              border: `1px dashed ${theme.border}`,
+                              borderRadius: theme.borderRadius,
+                              backgroundColor: isHighContrast ? '#1e1e1e' : '#f9f9f9'
                             }}>
                               No comments yet. Be the first to comment!
                             </div>
@@ -733,23 +994,60 @@ function PostsPage() {
                     )}
                   </AnimatePresence>
                 </div>
-              </motion.article>
+              </PostCard>
             ))}
           </AnimatePresence>
         </section>
       </main>
 
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+            cursor: 'pointer'
+          }}
+          onClick={() => setExpandedImage(null)}
+        >
+          <motion.img
+            src={expandedImage}
+            alt="Expanded view"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring' }}
+          />
+        </motion.div>
+      )}
+
       {/* Scroll to Top Button */}
-      <motion.button
+      <FloatingActionButton
         onClick={scrollToTop}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        style={styles.scrollToTop}
+        theme={theme}
         aria-label="Scroll to top"
       >
         ↑
-      </motion.button>
-    </div>
+      </FloatingActionButton>
+    </Container>
   );
 }
 

@@ -13,15 +13,22 @@ const HomePage = () => {
   const postsPerPage = 6;
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    checkAuthStatus();
+  }, []);
 
-    if (token) {
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem("token");
+    const loggedIn = !!token;
+    setIsLoggedIn(loggedIn);
+
+    if (loggedIn) {
       fetchPostsAndComments();
     } else {
       setLoading(false);
+      setPosts([]);
+      setComments({});
     }
-  }, []);
+  };
 
   const fetchPostsAndComments = async () => {
     try {
@@ -70,10 +77,10 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (loading) {
+  if (loading && isLoggedIn) {
     return (
       <div className="home-page">
-        <Header />
+        <Header checkAuthStatus={checkAuthStatus} />
         <main className="main-content">
           <LoadingSpinner fullPage />
         </main>
@@ -83,7 +90,7 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-      {isLoggedIn && <Header />}
+      {isLoggedIn && <Header checkAuthStatus={checkAuthStatus} />}
       <main className={`main-content ${!isLoggedIn ? 'full-screen-landing' : ''}`}>
         {!isLoggedIn ? (
           <LandingPage />
@@ -804,10 +811,6 @@ const Footer = () => {
               <FaPhone className="contact-icon" />
               <span>+212614510462</span>
             </div>
-            {/* <div className="contact-item">
-              <FaEnvelope className="contact-icon" />
-              <span>AGADIR <br />TECHNOPARK</span>
-            </div> */}
           </div>
         </div>
       </div>
@@ -977,6 +980,8 @@ const LandingPage = () => {
           <div className="gallery-item" style={{ backgroundImage: 'url(https://www.edenseniorhc.com/wp-content/uploads/2024/02/istockphoto-1184362383-612x612-1.jpg)' }}></div>
           <div className="gallery-item" style={{ backgroundImage: 'url(https://joniandfriends.org/wp-content/uploads/2024/05/23_WFTW_West_Bank_0658.jpg)' }}></div>
           <div className="gallery-item" style={{ backgroundImage: 'url(https://disabilityfoundation.org/wp-content/uploads/2021/05/DF-Volunteer-Home-01.png)' }}></div>
+            <div className="gallery-item" style={{ backgroundImage: 'url(https://t4.ftcdn.net/jpg/00/89/43/77/360_F_89437749_5LxZL2lOgUuiXOkAfAq17fqrkQfliEVd.jpg)' }}></div>
+              <div className="gallery-item" style={{ backgroundImage: 'url(https://studying-in-canada.org/wp-content/uploads/2019/11/Disabled-student-in-Canada.jpg)' }}></div>
         </div>
       </section>
     </>

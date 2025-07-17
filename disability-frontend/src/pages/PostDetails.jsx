@@ -9,7 +9,9 @@ import {
   FiArrowLeft, 
   FiMoreHorizontal,
   FiClock,
-  FiCalendar
+  FiCalendar,
+  FiVolume2,
+  FiVolumeX
 } from "react-icons/fi";
 import { FaHeart, FaRegComment } from "react-icons/fa";
 import { RiDeleteBinLine } from "react-icons/ri";
@@ -26,9 +28,18 @@ function PostDetails() {
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
   const userId = localStorage.getItem("userId");
+
+  // Check if speech synthesis is supported
+  useEffect(() => {
+    if (!window.speechSynthesis) {
+      setSpeechSupported(false);
+    }
+  }, []);
 
   const fetchPostAndComments = async () => {
     try {
@@ -50,6 +61,60 @@ function PostDetails() {
   useEffect(() => {
     fetchPostAndComments();
   }, [id]);
+
+  // Text-to-speech functionality
+  const speakContent = () => {
+    if (!speechSupported) {
+      alert("Text-to-speech is not supported in your browser");
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const speech = new SpeechSynthesisUtterance();
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Find a natural-sounding voice if available
+    const preferredVoice = voices.find(voice => 
+      voice.lang.includes('en') && 
+      (voice.name.includes('Natural') || voice.name.includes('Female') || voice.name.includes('Male'))
+    );
+    
+    if (preferredVoice) {
+      speech.voice = preferredVoice;
+    }
+    
+    speech.rate = 1;
+    speech.pitch = 1;
+    speech.volume = 1;
+    
+    // Prepare the content to be read
+    let contentToRead = `Post titled: ${post.title}. `;
+    contentToRead += `Posted by ${post.user?.username || "Anonymous"} in ${post.category}. `;
+    contentToRead += `Content: ${post.description}. `;
+    
+    if (comments.length > 0) {
+      contentToRead += `There are ${comments.length} comments. `;
+      comments.forEach((comment, index) => {
+        contentToRead += `Comment ${index + 1} by ${comment.user?.username || "Anonymous"}: ${comment.text}. `;
+      });
+    } else {
+      contentToRead += "There are no comments yet.";
+    }
+    
+    speech.text = contentToRead;
+    
+    speech.onend = () => {
+      setIsSpeaking(false);
+    };
+    
+    window.speechSynthesis.speak(speech);
+    setIsSpeaking(true);
+  };
 
   const handleLike = async () => {
     if (!token) {
@@ -200,11 +265,23 @@ function PostDetails() {
         <button onClick={() => navigate(-1)} className="back-button">
           <FiArrowLeft /> Back
         </button>
-        {role === "admin" && (
-          <button onClick={handleDeletePost} className="delete-button">
-            <RiDeleteBinLine /> Delete Post
-          </button>
-        )}
+        <div className="accessibility-controls">
+          {speechSupported && (
+            <button 
+              onClick={speakContent} 
+              className="speak-button"
+              aria-label={isSpeaking ? "Stop reading" : "Read post content"}
+            >
+              {isSpeaking ? <FiVolumeX /> : <FiVolume2 />}
+              <span>{isSpeaking ? "Stop" : "Listen"}</span>
+            </button>
+          )}
+          {role === "admin" && (
+            <button onClick={handleDeletePost} className="delete-button">
+              <RiDeleteBinLine /> Delete Post
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Post Content */}
@@ -213,6 +290,7 @@ function PostDetails() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        aria-live="polite"
       >
         {/* Post Header with Creator Info */}
         <header className="post-header">
@@ -220,6 +298,10 @@ function PostDetails() {
             className="creator-info" 
             onClick={() => post.user?._id && navigate(`/profile/${post.user._id}`)}
             style={{ cursor: post.user?._id ? 'pointer' : 'default' }}
+            tabIndex={0}
+            role="button"
+            aria-label={`View profile of ${post.user?.username || 'Anonymous'}`}
+            onKeyPress={(e) => e.key === 'Enter' && post.user?._id && navigate(`/profile/${post.user._id}`)}
           >
             {post.user?.profilePicture ? (
               <img 
@@ -239,7 +321,7 @@ function PostDetails() {
               </span>
             </div>
           </div>
-          <div className="post-category">
+          <div className="post-category" aria-label={`Category: ${post.category}`}>
             {post.category}
           </div>
         </header>
@@ -256,6 +338,10 @@ function PostDetails() {
                 alt={post.title} 
                 className="post-image"
                 onClick={toggleLightbox}
+                tabIndex={0}
+                role="button"
+                aria-label="Click to view full size image"
+                onKeyPress={(e) => e.key === 'Enter' && toggleLightbox()}
               />
               <div className="image-hint">Click to view full size</div>
             </div>
@@ -268,6 +354,7 @@ function PostDetails() {
             onClick={handleLike} 
             disabled={isLiking}
             className={`like-button ${post.likes.includes(userId) ? 'liked' : ''}`}
+            aria-label={post.likes.includes(userId) ? "Unlike this post" : "Like this post"}
           >
             {post.likes.includes(userId) ? (
               <FaHeart className="like-icon" />
@@ -280,6 +367,7 @@ function PostDetails() {
           <button 
             onClick={() => document.getElementById("comment-input")?.focus()} 
             className="comment-button"
+            aria-label={`Comment on this post. ${comments.length} comments so far`}
           >
             <FaRegComment className="comment-icon" />
             <span>{comments.length}</span>
@@ -296,6 +384,7 @@ function PostDetails() {
             <button 
               onClick={() => navigate(`/profile/${post.user._id}`)} 
               className="view-profile-button"
+              aria-label={`View profile of ${post.user.username}`}
             >
               <FiUser /> View Creator Profile
             </button>
@@ -315,11 +404,13 @@ function PostDetails() {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               className="comment-input"
+              aria-label="Write a comment"
             />
             <button 
               onClick={handleComment} 
               disabled={isCommenting || !commentText.trim()}
               className="submit-comment"
+              aria-label="Submit comment"
             >
               {isCommenting ? (
                 <span className="comment-spinner"></span>
@@ -339,6 +430,10 @@ function PostDetails() {
                       className="comment-author"
                       onClick={() => comment.user?._id && navigate(`/profile/${comment.user._id}`)}
                       style={{ cursor: comment.user?._id ? 'pointer' : 'default' }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View profile of ${comment.user?.username || 'Anonymous'}`}
+                      onKeyPress={(e) => e.key === 'Enter' && comment.user?._id && navigate(`/profile/${comment.user._id}`)}
                     >
                       {comment.user?.profilePicture ? (
                         <img 
@@ -362,6 +457,7 @@ function PostDetails() {
                     <button 
                       onClick={() => handleDeleteComment(comment._id)} 
                       className="delete-comment"
+                      aria-label="Delete comment"
                     >
                       <RiDeleteBinLine />
                     </button>
@@ -476,6 +572,12 @@ function PostDetails() {
           align-items: center;
         }
 
+        .accessibility-controls {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+
         /* Buttons */
         button {
           cursor: pointer;
@@ -510,6 +612,20 @@ function PostDetails() {
         }
 
         .delete-button:hover {
+          opacity: 0.9;
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .speak-button {
+          padding: 0.75rem 1.25rem;
+          background: var(--accent);
+          color: var(--white);
+          border-radius: var(--radius-md);
+          font-size: 1rem;
+        }
+
+        .speak-button:hover {
           opacity: 0.9;
           transform: translateY(-2px);
           box-shadow: var(--shadow-sm);
@@ -892,6 +1008,11 @@ function PostDetails() {
             flex-direction: column;
             gap: 1rem;
             align-items: flex-start;
+          }
+          
+          .accessibility-controls {
+            width: 100%;
+            justify-content: space-between;
           }
         }
       `}</style>

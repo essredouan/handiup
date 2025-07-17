@@ -32,59 +32,77 @@ function Navbar() {
   return (
     <>
       <style jsx>{`
-        /* Simple and clean variables */
+        /* Modern color palette with gradients */
         :root {
-          --primary: #4f46e5;
-          --primary-hover: #4338ca;
-          --text: #1f2937;
-          --text-light: #6b7280;
+          --primary: #6366f1;
+          --primary-hover: #4f46e5;
+          --secondary: #f59e0b;
+          --text: #1e293b;
+          --text-light: #64748b;
           --bg: #ffffff;
-          --border: #e5e7eb;
-          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-          --radius: 0.375rem;
-          --transition: all 0.15s ease;
+          --bg-accent: #f8fafc;
+          --border: #e2e8f0;
+          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+          --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          --radius: 0.5rem;
+          --radius-lg: 1rem;
+          --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Base navbar styles */
+        /* Base navbar with subtle glass effect */
         .navbar {
-          background: var(--bg);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(8px);
           box-shadow: var(--shadow-sm);
           position: sticky;
           top: 0;
           z-index: 50;
           width: 100%;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.6);
         }
 
         .navbar-container {
-          max-width: 1200px;
+          max-width: 1280px;
           margin: 0 auto;
-          padding: 1rem;
+          padding: 0.75rem 1.5rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
 
-        /* Logo styles */
+        /* Logo with gradient text */
         .logo {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 1.25rem;
-          color: var(--text);
+          font-weight: 800;
+          font-size: 1.65rem;
+          color: transparent;
+          background: linear-gradient(45deg, var(--primary), var(--secondary));
+          -webkit-background-clip: text;
+          background-clip: text;
+          transition: var(--transition);
+        }
+
+        .logo:hover {
+          opacity: 0.9;
         }
 
         .logo-image {
-          height: 2rem;
+          height: 3.5rem;
+          transition: var(--transition);
         }
 
-        /* Navigation links */
+        .logo:hover .logo-image {
+          transform: rotate(-5deg) scale(1.05);
+        }
+
+        /* Navigation links with animated underline */
         .nav-links {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1.5rem;
         }
 
         .nav-links a {
@@ -94,13 +112,29 @@ function Navbar() {
           font-size: 0.95rem;
           transition: var(--transition);
           padding: 0.5rem 0;
+          position: relative;
+        }
+
+        .nav-links a::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(90deg, var(--primary), var(--secondary));
+          transition: var(--transition);
         }
 
         .nav-links a:hover {
-          color: var(--primary);
+          color: var(--text);
         }
 
-        /* Profile dropdown */
+        .nav-links a:hover::after {
+          width: 100%;
+        }
+
+        /* Profile dropdown with card-like design */
         .profile-wrapper {
           position: relative;
         }
@@ -108,28 +142,33 @@ function Navbar() {
         .profile-button {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          background: transparent;
-          border: 1px solid var(--border);
+          gap: 0.75rem;
+          background: var(--bg-accent);
+          border: none;
           cursor: pointer;
-          padding: 0.5rem 0.75rem;
-          border-radius: var(--radius);
+          padding: 0.5rem 1rem;
+          border-radius: var(--radius-lg);
           transition: var(--transition);
+          box-shadow: var(--shadow-sm);
         }
 
         .profile-button:hover {
-          border-color: var(--primary);
+          background: #f1f5f9;
+          box-shadow: var(--shadow-md);
+          transform: translateY(-1px);
         }
 
         .profile-image {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
           object-fit: cover;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .profile-name {
-          font-weight: 500;
+          font-weight: 600;
           color: var(--text);
           font-size: 0.9rem;
         }
@@ -137,20 +176,32 @@ function Navbar() {
         .profile-dropdown {
           position: absolute;
           right: 0;
-          top: calc(100% + 0.5rem);
+          top: calc(100% + 0.75rem);
           background: var(--bg);
           border-radius: var(--radius);
-          box-shadow: var(--shadow-sm);
+          box-shadow: var(--shadow-md);
           border: 1px solid var(--border);
-          min-width: 200px;
+          min-width: 220px;
           overflow: hidden;
           z-index: 40;
+          opacity: 0;
+          transform: translateY(-10px);
+          transition: var(--transition);
+          visibility: hidden;
+        }
+
+        .profile-dropdown.open {
+          opacity: 1;
+          transform: translateY(0);
+          visibility: visible;
         }
 
         .profile-dropdown a, 
         .logout-button {
-          display: block;
-          padding: 0.75rem 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1.25rem;
           text-decoration: none;
           color: var(--text-light);
           font-weight: 500;
@@ -163,52 +214,57 @@ function Navbar() {
         }
 
         .profile-dropdown a:hover {
-          background: #f9fafb;
+          background: var(--bg-accent);
           color: var(--primary);
+          padding-left: 1.5rem;
         }
 
         .logout-button {
           color: #ef4444;
+          border-top: 1px solid var(--border);
         }
 
         .logout-button:hover {
           background: #fef2f2;
+          padding-left: 1.5rem;
         }
 
-        /* Mobile menu button */
+        /* Mobile menu button with animation */
         .mobile-menu-button {
           display: none;
           background: none;
           border: none;
           cursor: pointer;
           padding: 0.5rem;
+          z-index: 60;
         }
 
         .mobile-menu-icon {
           display: block;
-          width: 24px;
+          width: 28px;
           height: 2px;
-          background: var(--text);
+          background: var(--primary);
           position: relative;
+          transition: var(--transition);
         }
 
         .mobile-menu-icon::before,
         .mobile-menu-icon::after {
           content: '';
           position: absolute;
-          width: 24px;
+          width: 28px;
           height: 2px;
-          background: var(--text);
+          background: var(--primary);
           left: 0;
           transition: var(--transition);
         }
 
         .mobile-menu-icon::before {
-          top: -6px;
+          top: -8px;
         }
 
         .mobile-menu-icon::after {
-          top: 6px;
+          top: 8px;
         }
 
         .mobile-menu-button.open .mobile-menu-icon {
@@ -218,21 +274,24 @@ function Navbar() {
         .mobile-menu-button.open .mobile-menu-icon::before {
           transform: rotate(45deg);
           top: 0;
+          background: var(--primary);
         }
 
         .mobile-menu-button.open .mobile-menu-icon::after {
           transform: rotate(-45deg);
           top: 0;
+          background: var(--primary);
         }
 
-        /* Mobile menu overlay */
+        /* Mobile menu overlay with gradient */
         .mobile-menu-overlay {
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.3);
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(245, 158, 11, 0.1));
+          backdrop-filter: blur(5px);
           z-index: 30;
           opacity: 0;
           pointer-events: none;
@@ -244,7 +303,7 @@ function Navbar() {
           pointer-events: auto;
         }
 
-        /* Responsive styles */
+        /* Responsive styles with smooth transitions */
         @media (max-width: 768px) {
           .mobile-menu-button {
             display: block;
@@ -255,29 +314,41 @@ function Navbar() {
             top: 0;
             right: 0;
             height: 100vh;
-            width: 280px;
+            width: 300px;
             background: var(--bg);
             flex-direction: column;
             align-items: flex-start;
-            padding: 5rem 1.5rem 2rem;
+            padding: 6rem 2rem 2rem;
             transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 40;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
             border-left: 1px solid var(--border);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
           }
 
           .nav-links.open {
             transform: translateX(0);
           }
 
+          .nav-links a {
+            width: 100%;
+            padding: 0.75rem 0;
+            font-size: 1.1rem;
+          }
+
+          .nav-links a::after {
+            display: none;
+          }
+
           .profile-wrapper {
             width: 100%;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
           }
 
           .profile-button {
             width: 100%;
             justify-content: space-between;
+            padding: 0.75rem 1rem;
           }
 
           .profile-dropdown {
@@ -286,15 +357,45 @@ function Navbar() {
             border: none;
             width: 100%;
             margin-top: 0.5rem;
+            opacity: 1;
+            transform: none;
+            visibility: visible;
+            display: none;
+          }
+
+          .profile-dropdown.open {
+            display: block;
           }
         }
+
+        /* Animation for dropdown items */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .profile-dropdown a,
+        .profile-dropdown .logout-button {
+          animation: fadeIn 0.2s ease forwards;
+        }
+
+        .profile-dropdown a:nth-child(1) { animation-delay: 0.05s; }
+        .profile-dropdown a:nth-child(2) { animation-delay: 0.1s; }
+        .profile-dropdown a:nth-child(3) { animation-delay: 0.15s; }
+        .logout-button { animation-delay: 0.2s; }
       `}</style>
 
       <nav className="navbar">
         <div className="navbar-container">
           <Link to="/" className="logo">
-            <img src="/handiup2.avif" alt="handiUp Logo" className="logo-image" />
-            <span>handiUp</span>
+            <img src="/logo1.jpg" alt="handiUp Logo" className="logo-image" />
+            <span>HandiUp</span>
           </Link>
 
           <button
@@ -311,7 +412,7 @@ function Navbar() {
           />
 
           <div className={`nav-links ${mobileMenuOpen ? "open" : ""}`}>
-            <Link to="/posts" onClick={() => setMobileMenuOpen(false)}>Posts</Link>
+            <Link to="/posts" onClick={() => setMobileMenuOpen(false)}>All Posts</Link>
 
             {token && (
               <>
@@ -331,47 +432,45 @@ function Navbar() {
                     <span className="profile-name">{username || "Profile"}</span>
                   </button>
                   
-                  {profileDropdownOpen && (
-                    <div className="profile-dropdown">
-                      <Link 
-                        to="/profile" 
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          setProfileDropdownOpen(false);
-                        }}
-                      >
-                        My Profile
-                      </Link>
-                      {role === "admin" && (
-                        <>
-                          <Link 
-                            to="/categories" 
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              setProfileDropdownOpen(false);
-                            }}
-                          >
-                            Categories
-                          </Link>
-                          <Link 
-                            to="/admin" 
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              setProfileDropdownOpen(false);
-                            }}
-                          >
-                            Admin Dashboard
-                          </Link>
-                        </>
-                      )}
-                      <button 
-                        onClick={handleLogout} 
-                        className="logout-button"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
+                  <div className={`profile-dropdown ${profileDropdownOpen ? "open" : ""}`}>
+                    <Link 
+                      to="/profile" 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setProfileDropdownOpen(false);
+                      }}
+                    >
+                      Profile
+                    </Link>
+                    {role === "admin" && (
+                      <>
+                        <Link 
+                          to="/categories" 
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setProfileDropdownOpen(false);
+                          }}
+                        >
+                          Categories
+                        </Link>
+                        <Link 
+                          to="/admin" 
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setProfileDropdownOpen(false);
+                          }}
+                        >
+                          Admin Dashboard
+                        </Link>
+                      </>
+                    )}
+                    <button 
+                      onClick={handleLogout} 
+                      className="logout-button"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </>
             )}

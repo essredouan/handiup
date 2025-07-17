@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import { FaPaperPlane, FaUser, FaComment, FaTimes, FaEdit, FaTrash, FaCamera, FaSpinner } from "react-icons/fa";
+import { FaPaperPlane, FaUser, FaComment, FaTimes, FaEdit, FaTrash, FaCamera, FaSpinner, FaVolumeUp, FaVolumeMute } from "react-icons/fa";
 import io from 'socket.io-client';
 
 function ProfilePage() {
@@ -19,8 +19,21 @@ function ProfilePage() {
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [activeSpeechSection, setActiveSpeechSection] = useState(null);
   const socketRef = useRef();
   const messagesEndRef = useRef();
+  const speechSynthesisRef = useRef(null);
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    speechSynthesisRef.current = window.speechSynthesis;
+    return () => {
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
+  }, []);
 
   // Fetch profile data
   const fetchProfile = async () => {
@@ -89,6 +102,68 @@ function ProfilePage() {
     fetchProfile();
     if (userId) setIsEditing(false);
   }, [userId]);
+
+  // Text-to-speech functions
+  const speakText = (text, section = null) => {
+    if (!speechSynthesisRef.current) {
+      alert("Text-to-speech not supported in your browser");
+      return;
+    }
+
+    // Stop any ongoing speech
+    speechSynthesisRef.current.cancel();
+    
+    if (section === activeSpeechSection && isSpeaking) {
+      // If clicking the same section's speak button while speaking, stop speaking
+      stopSpeech();
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setActiveSpeechSection(null);
+    };
+    utterance.onerror = (event) => {
+      console.error("SpeechSynthesis error:", event);
+      setIsSpeaking(false);
+      setActiveSpeechSection(null);
+    };
+
+    speechSynthesisRef.current.speak(utterance);
+    setIsSpeaking(true);
+    setActiveSpeechSection(section);
+  };
+
+  const stopSpeech = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+      setIsSpeaking(false);
+      setActiveSpeechSection(null);
+    }
+  };
+
+  const readProfileInfo = () => {
+    const profileText = `
+      ${userId ? `${user.username}'s Profile` : "My Profile"}.
+      Username: ${username}.
+      ${email ? `Email: ${email}.` : ''}
+      ${phone ? `Phone: ${phone}.` : ''}
+      ${address ? `Address: ${address}.` : ''}
+      ${bio ? `Bio: ${bio}.` : 'No bio provided.'}
+    `;
+    speakText(profileText, 'profile');
+  };
+
+  const readMessage = (message) => {
+    const messageText = `
+      Message from ${message.sender === user.username ? 'you' : message.sender} at ${new Date(message.timestamp).toLocaleTimeString()}: 
+      ${message.content}
+    `;
+    speakText(messageText, `message-${message._id}`);
+  };
 
   // Send message handler
   const sendMessage = (e) => {
@@ -199,26 +274,36 @@ function ProfilePage() {
       {/* Profile Card */}
       <div className="profile-card">
         <div className="profile-header">
-          <h2>{userId ? `${user.username}'s Profile` : "My Profile"}</h2>
-          <div className="header-actions">
-            {!userId && !isEditing && (
-              <button 
-                onClick={() => setIsEditing(true)} 
-                className="edit-btn"
-                aria-label="Edit profile"
+          <div className="header-content">
+            <h2>{userId ? `${user.username}'s Profile` : "My Profile"}</h2>
+            <div className="header-actions">
+              {!userId && !isEditing && (
+                <button 
+                  onClick={() => setIsEditing(true)} 
+                  className="edit-btn"
+                  aria-label="Edit profile"
+                >
+                  <FaEdit /> Edit
+                </button>
+              )}
+              {userId && (
+                <button 
+                  onClick={() => setShowChat(!showChat)} 
+                  className="chat-profile-btn"
+                  aria-label="Open chat"
+                >
+                  <FaComment /> Chat
+                </button>
+              )}
+              {/* Read Profile Button */}
+              <button
+                onClick={readProfileInfo}
+                className="read-profile-btn"
+                aria-label={isSpeaking && activeSpeechSection === 'profile' ? "Stop reading profile" : "Read profile aloud"}
               >
-                <FaEdit /> Edit
+                {isSpeaking && activeSpeechSection === 'profile' ? <FaVolumeMute /> : <FaVolumeUp />}
               </button>
-            )}
-            {userId && (
-              <button 
-                onClick={() => setShowChat(!showChat)} 
-                className="chat-profile-btn"
-                aria-label="Open chat"
-              >
-                <FaComment /> Chat
-              </button>
-            )}
+            </div>
           </div>
         </div>
 
@@ -240,6 +325,7 @@ function ProfilePage() {
                     onChange={handleImageChange}
                     disabled={loading}
                     accept="image/*"
+                    aria-label="Upload profile photo"
                   />
                   <span className="upload-icon">
                     <FaCamera />
@@ -253,6 +339,7 @@ function ProfilePage() {
                 onClick={handleImageUpload} 
                 disabled={loading}
                 className="upload-btn"
+                aria-label="Save profile photo"
               >
                 {loading ? (
                   <>
@@ -266,53 +353,59 @@ function ProfilePage() {
           </div>
 
           <div className="profile-info">
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={!isEditing || loading}
-                placeholder="Enter your username"
-              />
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={!isEditing || loading}
+                  placeholder="Enter your username"
+                  aria-label="Username"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={!isEditing || loading}
+                  placeholder="Enter your email"
+                  type="email"
+                  aria-label="Email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="phone">Phone</label>
+                <input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={!isEditing || loading}
+                  placeholder="Enter your phone number"
+                  type="tel"
+                  aria-label="Phone number"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="address">Address</label>
+                <input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={!isEditing || loading}
+                  placeholder="Enter your address"
+                  aria-label="Address"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={!isEditing || loading}
-                placeholder="Enter your email"
-                type="email"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="phone">Phone</label>
-              <input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={!isEditing || loading}
-                placeholder="Enter your phone number"
-                type="tel"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="address">Address</label>
-              <input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                disabled={!isEditing || loading}
-                placeholder="Enter your address"
-              />
-            </div>
-
-            <div className="form-group">
+            <div className="form-group bio-group">
               <label htmlFor="bio">Bio</label>
               <textarea
                 id="bio"
@@ -321,6 +414,7 @@ function ProfilePage() {
                 disabled={!isEditing || loading}
                 placeholder="Tell us about yourself..."
                 rows="4"
+                aria-label="Bio"
               />
             </div>
 
@@ -331,6 +425,7 @@ function ProfilePage() {
                     onClick={handleUpdate} 
                     disabled={loading}
                     className="save-btn"
+                    aria-label="Save changes"
                   >
                     {loading ? (
                       <>
@@ -347,6 +442,7 @@ function ProfilePage() {
                     }} 
                     disabled={loading}
                     className="cancel-btn"
+                    aria-label="Cancel changes"
                   >
                     Cancel
                   </button>
@@ -354,12 +450,13 @@ function ProfilePage() {
                     onClick={handleDelete} 
                     disabled={loading}
                     className="delete-btn"
+                    aria-label="Delete account"
                   >
                     <FaTrash /> Delete Account
                   </button>
                 </>
               ) : !userId ? (
-                <button onClick={handleDone} className="done-btn">
+                <button onClick={handleDone} className="done-btn" aria-label="Back to home">
                   Back to Home
                 </button>
               ) : null}
@@ -382,12 +479,26 @@ function ProfilePage() {
           <div className="chat-container">
             <div className="chat-header">
               <h3>Community Chat</h3>
-              <button 
-                onClick={() => setShowChat(false)}
-                aria-label="Close chat"
-              >
-                <FaTimes />
-              </button>
+              <div className="chat-header-actions">
+                <button
+                  onClick={() => {
+                    const chatText = messages.map(msg => 
+                      `From ${msg.sender === user.username ? 'you' : msg.sender}: ${msg.content}`
+                    ).join('. ');
+                    speakText(chatText, 'chat');
+                  }}
+                  className="read-chat-btn"
+                  aria-label={isSpeaking && activeSpeechSection === 'chat' ? "Stop reading chat" : "Read all chat messages"}
+                >
+                  {isSpeaking && activeSpeechSection === 'chat' ? <FaVolumeMute /> : <FaVolumeUp />}
+                </button>
+                <button 
+                  onClick={() => setShowChat(false)}
+                  aria-label="Close chat"
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
 
             <div className="messages-container">
@@ -396,8 +507,17 @@ function ProfilePage() {
                   key={i} 
                   className={`message ${msg.sender === user.username ? 'sent' : 'received'}`}
                 >
-                  <div className="message-sender">
-                    <FaUser /> {msg.sender === user.username ? 'You' : msg.sender}
+                  <div className="message-header">
+                    <div className="message-sender">
+                      <FaUser /> {msg.sender === user.username ? 'You' : msg.sender}
+                    </div>
+                    <button
+                      onClick={() => readMessage(msg)}
+                      className="read-message-btn"
+                      aria-label={isSpeaking && activeSpeechSection === `message-${msg._id}` ? "Stop reading this message" : "Read this message"}
+                    >
+                      {isSpeaking && activeSpeechSection === `message-${msg._id}` ? <FaVolumeMute size={12} /> : <FaVolumeUp size={12} />}
+                    </button>
                   </div>
                   <div className="message-content">{msg.content}</div>
                   <div className="message-time">
@@ -425,13 +545,24 @@ function ProfilePage() {
         )}
       </div>
 
+      {/* Global Stop Speech Button - Only shown when speech is active */}
+      {isSpeaking && (
+        <button 
+          onClick={stopSpeech}
+          className="stop-speech-btn"
+          aria-label="Stop all speech"
+        >
+          <FaVolumeMute /> Stop Speech
+        </button>
+      )}
+
       {/* CSS Styles */}
       <style jsx>{`
         /* Base Styles */
         :root {
-          --primary: #4f46e5;
-          --primary-light: #6366f1;
-          --primary-dark: #4338ca;
+          --primary: #6366f1;
+          --primary-light: #818cf8;
+          --primary-dark: #4f46e5;
           --secondary: #10b981;
           --accent: #f59e0b;
           --danger: #ef4444;
@@ -450,6 +581,8 @@ function ProfilePage() {
 
         * {
           box-sizing: border-box;
+          margin: 0;
+          padding: 0;
         }
 
         /* Profile Page */
@@ -476,7 +609,7 @@ function ProfilePage() {
         .spinner {
           width: 50px;
           height: 50px;
-          border: 4px solid rgba(79, 70, 229, 0.1);
+          border: 4px solid rgba(99, 102, 241, 0.1);
           border-radius: 50%;
           border-top-color: var(--primary);
           animation: spin 1s ease-in-out infinite;
@@ -500,12 +633,28 @@ function ProfilePage() {
         }
 
         .profile-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           padding: 1.5rem 2rem;
           background: linear-gradient(135deg, var(--primary), var(--primary-dark));
           color: white;
+          position: relative;
+        }
+
+        .profile-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+          opacity: 0.7;
+        }
+
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 100%;
         }
 
         .profile-header h2 {
@@ -520,7 +669,7 @@ function ProfilePage() {
           gap: 0.75rem;
         }
 
-        .edit-btn, .chat-profile-btn {
+        .edit-btn, .chat-profile-btn, .read-profile-btn {
           background-color: rgba(255, 255, 255, 0.15);
           border: none;
           color: white;
@@ -536,9 +685,16 @@ function ProfilePage() {
           backdrop-filter: blur(4px);
         }
 
-        .edit-btn:hover, .chat-profile-btn:hover {
+        .edit-btn:hover, .chat-profile-btn:hover, .read-profile-btn:hover {
           background-color: rgba(255, 255, 255, 0.25);
           transform: translateY(-1px);
+        }
+
+        .read-profile-btn {
+          padding: 0.5rem;
+          width: 36px;
+          height: 36px;
+          justify-content: center;
         }
 
         .profile-content {
@@ -574,6 +730,10 @@ function ProfilePage() {
           width: 180px;
           height: 180px;
           margin-bottom: 1.5rem;
+          border-radius: 50%;
+          background: linear-gradient(45deg, #f3f4f6, #e5e7eb);
+          padding: 6px;
+          box-shadow: var(--shadow-md);
         }
 
         .profile-image {
@@ -582,7 +742,7 @@ function ProfilePage() {
           object-fit: cover;
           border-radius: 50%;
           border: 4px solid white;
-          box-shadow: var(--shadow-lg);
+          box-shadow: var(--shadow-sm);
         }
 
         .image-upload-label {
@@ -599,6 +759,7 @@ function ProfilePage() {
           cursor: pointer;
           transition: var(--transition);
           box-shadow: var(--shadow-md);
+          z-index: 2;
         }
 
         .image-upload-label:hover {
@@ -655,8 +816,19 @@ function ProfilePage() {
           }
         }
 
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
         .form-group {
-          margin-bottom: 1.75rem;
+          margin-bottom: 0;
+        }
+
+        .bio-group {
+          grid-column: 1 / -1;
         }
 
         .form-group label {
@@ -705,6 +877,8 @@ function ProfilePage() {
           flex-wrap: wrap;
           gap: 1rem;
           margin-top: 2.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid var(--light-gray);
         }
 
         .save-btn {
@@ -849,6 +1023,18 @@ function ProfilePage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          position: relative;
+        }
+
+        .chat-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+          opacity: 0.7;
         }
 
         .chat-header h3 {
@@ -857,17 +1043,32 @@ function ProfilePage() {
           font-weight: 600;
         }
 
-        .chat-header button {
+        .chat-header-actions {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+
+        .chat-header button, .read-chat-btn {
           background: none;
           border: none;
           color: white;
           cursor: pointer;
-          font-size: 1.25rem;
+          font-size: 1rem;
           transition: var(--transition);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
         }
 
-        .chat-header button:hover {
-          transform: rotate(90deg);
+        .read-chat-btn {
+          font-size: 1.1rem;
+        }
+
+        .chat-header button:hover, .read-chat-btn:hover {
+          transform: scale(1.1);
         }
 
         .messages-container {
@@ -899,6 +1100,13 @@ function ProfilePage() {
           word-break: break-word;
         }
 
+        .message-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.25rem;
+        }
+
         .message.received {
           background-color: white;
           align-self: flex-start;
@@ -916,7 +1124,6 @@ function ProfilePage() {
         .message-sender {
           font-size: 0.75rem;
           font-weight: 600;
-          margin-bottom: 0.25rem;
           display: flex;
           align-items: center;
           gap: 0.25rem;
@@ -929,6 +1136,32 @@ function ProfilePage() {
 
         .message.sent .message-sender {
           color: rgba(255, 255, 255, 0.9);
+        }
+
+        .read-message-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.7;
+          transition: var(--transition);
+        }
+
+        .message.received .read-message-btn {
+          color: var(--gray);
+        }
+
+        .message.sent .read-message-btn {
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .read-message-btn:hover {
+          opacity: 1;
+          transform: scale(1.1);
         }
 
         .message-content {
@@ -990,6 +1223,38 @@ function ProfilePage() {
           transform: none;
         }
 
+        /* Stop Speech Button */
+        .stop-speech-btn {
+          position: fixed;
+          bottom: 2rem;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: var(--danger);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 50px;
+          cursor: pointer;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: var(--shadow-lg);
+          z-index: 1001;
+          animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .stop-speech-btn:hover {
+          background-color: #dc2626;
+        }
+
         /* Spinner animation */
         .spin {
           animation: spin 1s linear infinite;
@@ -1012,6 +1277,12 @@ function ProfilePage() {
           .chat-container {
             width: 320px;
             height: 450px;
+          }
+
+          .stop-speech-btn {
+            bottom: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
           }
         }
 
@@ -1037,6 +1308,10 @@ function ProfilePage() {
 
           .delete-btn {
             margin-left: 0;
+          }
+
+          .form-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
